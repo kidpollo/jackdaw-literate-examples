@@ -1,0 +1,18 @@
+{:deps 
+ {fundingcircle/jackdaw {:mvn/version "0.6.0"}
+  ;;org.apache.kafka/kafka-streams {:mvn/version "2.1.0"}
+  ;;org.apache.kafka/kafka-streams-test-utils {:mvn/version "2.1.0"}
+  org.clojure/clojure {:mvn/version "1.10.0"}
+  org.clojure/tools.logging {:mvn/version "0.4.1"}}
+
+ :mvn/repos
+ {"confluent" {:url "https://packages.confluent.io/maven/"}}
+
+ :paths
+ ["src" "test" "dev"]
+
+ :aliases
+ {:test {:extra-deps {com.cognitect/test-runner
+                      {:git/url "https://github.com/cognitect-labs/test-runner.git"
+                       :sha "209b64504cb3bd3b99ecfec7937b358a879f55c1"}}
+         :main-opts ["-m" "cognitect.test-runner"]}}}
