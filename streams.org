@@ -224,7 +224,7 @@
 
 * Simple pipe topology example
 ** Overview
-#+BEGIN_SRC dot :file pipe.png :cmdline -Kdot -Tpng
+#+BEGIN_SRC dot :file pipe.png :cmdline -Kdot -Tpng  :exports both
 digraph {
 splines=true;
 node [shape=box];
@@ -300,7 +300,7 @@ input -> output
 #+end_src
 
 ** Define topology start stop 
-#+begin_src clojure :results silent :ns user :tangle dev/user.clj
+#+begin_src clojure :results silent :ns user :tangle dev/user.clj :exports both
 (require '[pipe])
 
 (defn stop-pipe
@@ -319,7 +319,7 @@ input -> output
 #+end_src
 
 ** Start/reset topology state
-#+begin_src clojure :tangle run.clj :results pp
+#+begin_src clojure :tangle run.clj :results pp :exports both
 (stop-pipe)
 
 (Thread/sleep 1000)
@@ -332,7 +332,7 @@ input -> output
 :  #object[org.apache.kafka.streams.KafkaStreams 0x698dd399 "org.apache.kafka.streams.KafkaStreams@698dd399"]}
 
 ** List topics
-#+begin_src clojure :tangle run.clj :results pp :ns user
+#+begin_src clojure :tangle run.clj :results pp :ns user :exports both
 (list-topics)
 #+end_src
 
@@ -343,14 +343,12 @@ input -> output
 :  {:topic-name "input"}
 :  {:topic-name "output"})
 ** List publish input
-#+begin_src clojure :tangle run.clj :results pp :ns user
+#+begin_src clojure :tangle run.clj :results silent :ns user
 (publish (topic-config "input") "mundo")
 #+end_src
 
-#+RESULTS:
-: nil
 ** Read from the output
-#+begin_src clojure :tangle run.clj :results pp :ns user
+#+begin_src clojure :tangle run.clj :results pp :ns user :exports both
 (get-keyvals (topic-config "output"))
 #+end_src
 
@@ -358,7 +356,7 @@ input -> output
 : ([nil "hola"] [nil "mundo"])
 * The flex app
 ** Overview
-#+BEGIN_SRC dot :file flex.png :cmdline -Kdot -Tpng
+#+BEGIN_SRC dot :file flex.png :cmdline -Kdot -Tpng :exports both
 digraph {
 splines=true;
 node [shape=box];
@@ -460,7 +458,7 @@ evus -> s
 #+end_src
 
 ** Define topology start stop 
-#+begin_src clojure :results silent :ns user :tangle dev/user.clj
+#+begin_src clojure :results silent :ns user :tangle dev/user.clj :exports both
 (require '[flex])
 
 (defn stop-flex
@@ -481,7 +479,7 @@ evus -> s
 #+end_src
 
 ** Start/reset topology state
-#+begin_src clojure :tangle run.clj :results pp
+#+begin_src clojure :tangle run.clj :results pp :exports both
 (stop-flex)
 
 (Thread/sleep 1000)
@@ -494,7 +492,7 @@ evus -> s
 :  #object[org.apache.kafka.streams.KafkaStreams 0x7f6bfa4c "org.apache.kafka.streams.KafkaStreams@7f6bfa4c"]}
 
 ** List topics
-#+begin_src clojure :tangle run.clj :results pp :ns user
+#+begin_src clojure :tangle run.clj :results pp :ns user :exports both
 (list-topics)
 #+end_src
 
@@ -514,7 +512,7 @@ evus -> s
 #+end_example
 
 ** List publish input
-#+begin_src clojure :tangle run.clj :results silent :ns user
+#+begin_src clojure :tangle run.clj :results silent :ns user :exports both
 (def user-1 (java.util.UUID/randomUUID))
 
 (def source-1 (java.util.UUID/randomUUID))
@@ -568,7 +566,7 @@ evus -> s
 #+end_src
 
 ** Read from the output
-#+begin_src clojure :tangle run.clj :results pp :ns user
+#+begin_src clojure :tangle run.clj :results pp :ns user :exports both
 (get-keyvals (topic-config "events"))
 
 (get-keyvals (topic-config "user-sources"))
