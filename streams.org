@@ -224,7 +224,7 @@
 
 * Simple pipe topology example
 ** Overview
-#+BEGIN_SRC dot :file pipe.png :cmdline -Kdot -Tpng  :exports both
+#+BEGIN_SRC dot :file pipe.png :cmdline -Kdot -Tpng :exports both
 digraph {
 splines=true;
 node [shape=box];
@@ -233,7 +233,7 @@ input -> output
 }
 #+END_SRC
 
-#+RESULTS:
+#+RESULTS: :exports both
 [[file:flex.png]]
 
 ** Define topology
@@ -299,8 +299,8 @@ input -> output
   (start-app (app-config)))
 #+end_src
 
-** Define topology start stop 
-#+begin_src clojure :results silent :ns user :tangle dev/user.clj :exports both
+** Define topology start stop
+#+begin_src clojure :results silent :ns user :tangle dev/user.clj
 (require '[pipe])
 
 (defn stop-pipe
