@@ -11,8 +11,8 @@
 (clojure.pprint/pprint (do (ns user)
 (list-topics)))
 
-(clojure.pprint/pprint (do (ns user)
-(publish (topic-config "input") "mundo")))
+(ns user)
+(publish (topic-config "input") "mundo")
 
 (clojure.pprint/pprint (do (ns user)
 (get-keyvals (topic-config "output"))))
