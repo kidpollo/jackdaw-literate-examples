@@ -70,7 +70,7 @@
   (start))
 #+end_src
 ** Start confluent platform
-#+begin_src clojure :results pp :tangle run.clj
+#+begin_src clojure :results pp :tangle run.clj :exports both
   (confluent/start)
 #+end_src
 
