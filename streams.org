@@ -233,8 +233,8 @@ input -> output
 }
 #+END_SRC
 
-#+RESULTS: :exports both
-[[file:flex.png]]
+#+RESULTS:
+[[file:pipe.png]]
 
 ** Define topology
 #+begin_src clojure :tangle src/pipe.clj :results silent :ns pipe
@@ -263,7 +263,7 @@ input -> output
 (defn app-config
   "Returns the application config."
   []
-  {"application.id" "word-count"
+  {"application.id" "foo"
    "bootstrap.servers" "localhost:9092"
    "cache.max.bytes.buffering" "0"})
 
@@ -329,7 +329,10 @@ input -> output
 
 #+RESULTS:
 : {:pipe-app
-:  #object[org.apache.kafka.streams.KafkaStreams 0x698dd399 "org.apache.kafka.streams.KafkaStreams@698dd399"]}
+:  #object[org.apache.kafka.streams.KafkaStreams 0x27ac51aa "org.apache.kafka.streams.KafkaStreams@27ac51aa"]}
+: log4j:WARN No appenders could be found for logger (org.apache.kafka.clients.admin.AdminClientConfig).
+: log4j:WARN Please initialize the log4j system properly.
+: log4j:WARN See http://logging.apache.org/log4j/1.2/faq.html#noconfig for more info.
 
 ** List topics
 #+begin_src clojure :tangle run.clj :results pp :ns user :exports both
@@ -353,7 +356,7 @@ input -> output
 #+end_src
 
 #+RESULTS:
-: ([nil "hola"] [nil "mundo"])
+: ([nil "mundo"] [nil "mundo"])
 * The flex app
 ** Overview
 #+BEGIN_SRC dot :file flex.png :cmdline -Kdot -Tpng :exports both
@@ -488,8 +491,10 @@ evus -> s
 #+end_src
 
 #+RESULTS:
-: {:flex-app
-:  #object[org.apache.kafka.streams.KafkaStreams 0x7f6bfa4c "org.apache.kafka.streams.KafkaStreams@7f6bfa4c"]}
+: {:pipe-app
+:  #object[org.apache.kafka.streams.KafkaStreams 0x27ac51aa "org.apache.kafka.streams.KafkaStreams@27ac51aa"],
+:  :flex-app
+:  #object[org.apache.kafka.streams.KafkaStreams 0x280a694b "org.apache.kafka.streams.KafkaStreams@280a694b"]}
 
 ** List topics
 #+begin_src clojure :tangle run.clj :results pp :ns user :exports both
@@ -504,9 +509,10 @@ evus -> s
  {:topic-name "events"}
  {:topic-name "events-by-source"}
  {:topic-name "events-by-user-and-source"}
- {:topic-name "flex-app-KSTREAM-MAP-0000000003-repartition"}
  {:topic-name "flex-app-user-sources-changelog"}
  {:topic-name "flex-app-user-stats-changelog"}
+ {:topic-name "input"}
+ {:topic-name "output"}
  {:topic-name "user-sources"}
  {:topic-name "user-stats"})
 #+end_example
@@ -583,32 +589,30 @@ evus -> s
 
 #+RESULTS:
 #+begin_example
-([[nil #uuid "289d2b77-5af8-4f7c-889b-c3354dbb37d2"]
-  {:count 1, :sum 100}]
- [[#uuid "2343a830-004a-46f0-ba6e-8267d0083cff"
-   #uuid "42020683-2f5a-44bf-8a27-90ad9be5e69a"]
+([[#uuid "b89b1fa6-d921-489b-aa1b-bbf5b1392387"
+   #uuid "33d25349-31fa-4d77-b377-d2da431bb739"]
   {:count 1,
    :sum 1,
    :name "step counter",
-   :user-id #uuid "2343a830-004a-46f0-ba6e-8267d0083cff"}]
- [[#uuid "2343a830-004a-46f0-ba6e-8267d0083cff"
-   #uuid "66762c02-bdcd-40e7-b4b5-1209d3ebbc1f"]
+   :user-id #uuid "b89b1fa6-d921-489b-aa1b-bbf5b1392387"}]
+ [[#uuid "b89b1fa6-d921-489b-aa1b-bbf5b1392387"
+   #uuid "279c133a-5fd4-4877-915a-5229463d6d42"]
   {:count 1,
    :sum 2,
    :name "pushup counter",
-   :user-id #uuid "2343a830-004a-46f0-ba6e-8267d0083cff"}]
- [[#uuid "66e3c8d8-9496-4df7-ba5e-7ab6c56a6839"
-   #uuid "d18f617c-1752-4157-a5b9-2cb3f2bc3eb1"]
+   :user-id #uuid "b89b1fa6-d921-489b-aa1b-bbf5b1392387"}]
+ [[#uuid "cec3d863-2780-4524-956b-8faa9d9f8c9f"
+   #uuid "fac301de-0355-4e9c-a189-14f5bace33b4"]
   {:count 1,
    :sum 100,
    :name "step counter",
-   :user-id #uuid "66e3c8d8-9496-4df7-ba5e-7ab6c56a6839"}]
- [[#uuid "2343a830-004a-46f0-ba6e-8267d0083cff"
-   #uuid "66762c02-bdcd-40e7-b4b5-1209d3ebbc1f"]
+   :user-id #uuid "cec3d863-2780-4524-956b-8faa9d9f8c9f"}]
+ [[#uuid "b89b1fa6-d921-489b-aa1b-bbf5b1392387"
+   #uuid "279c133a-5fd4-4877-915a-5229463d6d42"]
   {:count 2,
    :sum 102,
    :name "pushup counter",
-   :user-id #uuid "2343a830-004a-46f0-ba6e-8267d0083cff"}])
+   :user-id #uuid "b89b1fa6-d921-489b-aa1b-bbf5b1392387"}])
 #+end_example
 
 
