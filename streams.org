@@ -1,8 +1,8 @@
 * Project deps
-
+  
 #+begin_src eden :tangle deps.edn
 {:deps 
- {fundingcircle/jackdaw {:mvn/version "0.6.0"}
+ {fundingcircle/jackdaw {:mvn/version "0.6.3"}
   ;;org.apache.kafka/kafka-streams {:mvn/version "2.1.0"}
   ;;org.apache.kafka/kafka-streams-test-utils {:mvn/version "2.1.0"}
   org.clojure/clojure {:mvn/version "1.10.0"}
@@ -329,7 +329,7 @@ input -> output
 
 #+RESULTS:
 : {:pipe-app
-:  #object[org.apache.kafka.streams.KafkaStreams 0x27ac51aa "org.apache.kafka.streams.KafkaStreams@27ac51aa"]}
+:  #object[org.apache.kafka.streams.KafkaStreams 0x2855d41f "org.apache.kafka.streams.KafkaStreams@2855d41f"]}
 : log4j:WARN No appenders could be found for logger (org.apache.kafka.clients.admin.AdminClientConfig).
 : log4j:WARN Please initialize the log4j system properly.
 : log4j:WARN See http://logging.apache.org/log4j/1.2/faq.html#noconfig for more info.
@@ -347,7 +347,7 @@ input -> output
 :  {:topic-name "output"})
 ** List publish input
 #+begin_src clojure :tangle run.clj :results silent :ns user
-(publish (topic-config "input") "mundo")
+(publish (topic-config "input") {:foo "hola"})
 #+end_src
 
 ** Read from the output
@@ -356,11 +356,11 @@ input -> output
 #+end_src
 
 #+RESULTS:
-: ([nil "mundo"] [nil "mundo"])
+: ([nil "mundo"] [nil {:foo "hola"}])
 * The flex app
 ** Overview
 #+BEGIN_SRC dot :file flex.png :cmdline -Kdot -Tpng :exports both
-digraph {
+digraph   {
 splines=true;
 node [shape=box];
 
@@ -492,9 +492,9 @@ evus -> s
 
 #+RESULTS:
 : {:pipe-app
-:  #object[org.apache.kafka.streams.KafkaStreams 0x27ac51aa "org.apache.kafka.streams.KafkaStreams@27ac51aa"],
+:  #object[org.apache.kafka.streams.KafkaStreams 0x2855d41f "org.apache.kafka.streams.KafkaStreams@2855d41f"],
 :  :flex-app
-:  #object[org.apache.kafka.streams.KafkaStreams 0x280a694b "org.apache.kafka.streams.KafkaStreams@280a694b"]}
+:  #object[org.apache.kafka.streams.KafkaStreams 0x775f7a08 "org.apache.kafka.streams.KafkaStreams@775f7a08"]}
 
 ** List topics
 #+begin_src clojure :tangle run.clj :results pp :ns user :exports both
@@ -589,31 +589,34 @@ evus -> s
 
 #+RESULTS:
 #+begin_example
-([[#uuid "b89b1fa6-d921-489b-aa1b-bbf5b1392387"
-   #uuid "33d25349-31fa-4d77-b377-d2da431bb739"]
+([[#uuid "4a52879e-38fa-4741-aab0-54dcf9ef6735"
+   #uuid "e509a188-86ef-4a9f-9f17-f601394b3ce2"]
   {:count 1,
    :sum 1,
    :name "step counter",
-   :user-id #uuid "b89b1fa6-d921-489b-aa1b-bbf5b1392387"}]
- [[#uuid "b89b1fa6-d921-489b-aa1b-bbf5b1392387"
-   #uuid "279c133a-5fd4-4877-915a-5229463d6d42"]
+   :user-id #uuid "4a52879e-38fa-4741-aab0-54dcf9ef6735"}]
+ [[#uuid "4a52879e-38fa-4741-aab0-54dcf9ef6735"
+   #uuid "885bbb57-fe97-4852-bc4b-a94a8ef1be91"]
   {:count 1,
    :sum 2,
    :name "pushup counter",
-   :user-id #uuid "b89b1fa6-d921-489b-aa1b-bbf5b1392387"}]
- [[#uuid "cec3d863-2780-4524-956b-8faa9d9f8c9f"
-   #uuid "fac301de-0355-4e9c-a189-14f5bace33b4"]
+   :user-id #uuid "4a52879e-38fa-4741-aab0-54dcf9ef6735"}]
+ [[#uuid "ffd50009-a63d-46de-887d-e67dc0ee5548"
+   #uuid "72acd538-c759-48cc-a66a-76e472a8d986"]
   {:count 1,
    :sum 100,
    :name "step counter",
-   :user-id #uuid "cec3d863-2780-4524-956b-8faa9d9f8c9f"}]
- [[#uuid "b89b1fa6-d921-489b-aa1b-bbf5b1392387"
-   #uuid "279c133a-5fd4-4877-915a-5229463d6d42"]
+   :user-id #uuid "ffd50009-a63d-46de-887d-e67dc0ee5548"}]
+ [[#uuid "4a52879e-38fa-4741-aab0-54dcf9ef6735"
+   #uuid "885bbb57-fe97-4852-bc4b-a94a8ef1be91"]
   {:count 2,
    :sum 102,
    :name "pushup counter",
-   :user-id #uuid "b89b1fa6-d921-489b-aa1b-bbf5b1392387"}])
+   :user-id #uuid "4a52879e-38fa-4741-aab0-54dcf9ef6735"}])
 #+end_example
+
+
+
 
 
 
