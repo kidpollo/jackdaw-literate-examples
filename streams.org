@@ -1,8 +1,8 @@
 * Project deps
-  
 #+begin_src eden :tangle deps.edn
 {:deps 
- {fundingcircle/jackdaw {:mvn/version "0.6.3"}
+ {fundingcircle/jackdaw {:mvn/version "0.6.6"}
+  org.apache.kafka/kafka-streams-test-utils {:mvn/version "2.2.0"}
   ;;org.apache.kafka/kafka-streams {:mvn/version "2.1.0"}
   ;;org.apache.kafka/kafka-streams-test-utils {:mvn/version "2.1.0"}
   org.clojure/clojure {:mvn/version "1.10.0"}
@@ -80,7 +80,6 @@
 : schema-registry is up
 : nil
 * Helpful helpers
-  
 #+begin_src clojure :tangle dev/user.clj :results silent :ns user
 (ns user
   "your lovely home"
@@ -379,7 +378,6 @@ evus -> s
 
 #+RESULTS:
 [[file:flex.png]]
-
 ** Define topology
 #+begin_src clojure :tangle src/flex.clj :results silent :ns flex
 (ns flex
@@ -491,10 +489,11 @@ evus -> s
 #+end_src
 
 #+RESULTS:
-: {:pipe-app
-:  #object[org.apache.kafka.streams.KafkaStreams 0x2855d41f "org.apache.kafka.streams.KafkaStreams@2855d41f"],
-:  :flex-app
-:  #object[org.apache.kafka.streams.KafkaStreams 0x775f7a08 "org.apache.kafka.streams.KafkaStreams@775f7a08"]}
+: {:flex-app
+:  #object[org.apache.kafka.streams.KafkaStreams 0x12441536 "org.apache.kafka.streams.KafkaStreams@12441536"]}
+: log4j:WARN No appenders could be found for logger (org.apache.kafka.clients.admin.AdminClientConfig).
+: log4j:WARN Please initialize the log4j system properly.
+: log4j:WARN See http://logging.apache.org/log4j/1.2/faq.html#noconfig for more info.
 
 ** List topics
 #+begin_src clojure :tangle run.clj :results pp :ns user :exports both
@@ -511,8 +510,6 @@ evus -> s
  {:topic-name "events-by-user-and-source"}
  {:topic-name "flex-app-user-sources-changelog"}
  {:topic-name "flex-app-user-stats-changelog"}
- {:topic-name "input"}
- {:topic-name "output"}
  {:topic-name "user-sources"}
  {:topic-name "user-stats"})
 #+end_example
@@ -573,6 +570,8 @@ evus -> s
 
 ** Read from the output
 #+begin_src clojure :tangle run.clj :results pp :ns user :exports both
+(in-ns 'user)
+
 (get-keyvals (topic-config "events"))
 
 (get-keyvals (topic-config "user-sources"))
@@ -588,33 +587,7 @@ evus -> s
 #+end_src
 
 #+RESULTS:
-#+begin_example
-([[#uuid "4a52879e-38fa-4741-aab0-54dcf9ef6735"
-   #uuid "e509a188-86ef-4a9f-9f17-f601394b3ce2"]
-  {:count 1,
-   :sum 1,
-   :name "step counter",
-   :user-id #uuid "4a52879e-38fa-4741-aab0-54dcf9ef6735"}]
- [[#uuid "4a52879e-38fa-4741-aab0-54dcf9ef6735"
-   #uuid "885bbb57-fe97-4852-bc4b-a94a8ef1be91"]
-  {:count 1,
-   :sum 2,
-   :name "pushup counter",
-   :user-id #uuid "4a52879e-38fa-4741-aab0-54dcf9ef6735"}]
- [[#uuid "ffd50009-a63d-46de-887d-e67dc0ee5548"
-   #uuid "72acd538-c759-48cc-a66a-76e472a8d986"]
-  {:count 1,
-   :sum 100,
-   :name "step counter",
-   :user-id #uuid "ffd50009-a63d-46de-887d-e67dc0ee5548"}]
- [[#uuid "4a52879e-38fa-4741-aab0-54dcf9ef6735"
-   #uuid "885bbb57-fe97-4852-bc4b-a94a8ef1be91"]
-  {:count 2,
-   :sum 102,
-   :name "pushup counter",
-   :user-id #uuid "4a52879e-38fa-4741-aab0-54dcf9ef6735"}])
-#+end_example
-
+: ()
 
 
 

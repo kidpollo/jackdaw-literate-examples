@@ -12,7 +12,7 @@
 (list-topics)))
 
 (ns user)
-(publish (topic-config "input") "mundo")
+(publish (topic-config "input") {:foo "hola"})
 
 (clojure.pprint/pprint (do (ns user)
 (get-keyvals (topic-config "output"))))
@@ -79,6 +79,8 @@
           :timestamp (System/currentTimeMillis)})
 
 (clojure.pprint/pprint (do (ns user)
+(in-ns 'user)
+
 (get-keyvals (topic-config "events"))
 
 (get-keyvals (topic-config "user-sources"))

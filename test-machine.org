@@ -1,0 +1,334 @@
+* Test Machine
+** Tests using mock-transport aka (TopologyTestDriver) 
+*** Lets start with super verbose tests
+#+begin_src clojure :tangle test/flex_test_1.clj :results silent :ns flex-test-1
+(ns flex-test-1
+  (:require [clojure.test :refer :all]
+            [jackdaw.streams.mock :as j.s.m]
+            [jackdaw.test :as j.t]))
+
+(defn mock-transport
+  [builder topics]
+  (let [mock-driver (-> (j.s.m/streams-builder)
+                        (builder)
+                        (j.s.m/streams-builder->test-driver))]
+    (j.t/mock-transport {:driver mock-driver}
+                        topics)))
+
+(deftest topology-test
+  (let [topology-topics {:events (flex/topic-config "events")
+                         :user-sources (flex/topic-config "user-sources")
+                         :events-by-source (flex/topic-config "events-by-source")
+                         :events-by-user-and-source (flex/topic-config "events-by-user-and-source")
+                         :user-stats (flex/topic-config "user-stats")}
+        ;; Transport
+        transport (mock-transport flex/build-topology topology-topics)
+
+        user-1 (java.util.UUID/randomUUID)
+        user-2 (java.util.UUID/randomUUID)
+        source-1 (java.util.UUID/randomUUID)
+        source-2 (java.util.UUID/randomUUID)
+        source-3 (java.util.UUID/randomUUID)
+
+        ;; User Sources
+        user-1-step-counter {:id source-1
+                             :name "step counter"
+                             :user-id user-1}
+        user-1-pushup-counter {:id source-2
+                               :name "pushup counter"
+                               :user-id user-1}
+        user-2-step-counter {:id source-3
+                             :name "step counter"
+                             :user-id user-2}]
+
+    (with-open [machine (j.t/test-machine transport)]
+      (testing "user-1 takes 1 step"
+        (let [commands [[:write! :user-sources user-1-step-counter]
+                        [:write! :events {:id (java.util.UUID/randomUUID)
+                                          :event-id (java.util.UUID/randomUUID)
+                                          :source-id source-1
+                                          :value 1
+                                          :timestamp (System/currentTimeMillis)}]
+                        [:watch (fn [journal]
+                                  (->> (get-in journal [:topics :user-stats])
+                                       (filter #(= [user-1 source-1] (:key %)))
+                                       (count)
+                                       (= 1)))]]
+              {:keys [results journal]} (j.t/run-test machine commands)]
+
+          ;; check status on every command
+          (is (every? #(= :ok (:status %)) results))
+          ;; gets one step entry with one step count
+          (is (= 1 (-> journal
+                       (get-in [:topics :user-stats])
+                       (->>
+                        (filter #(= [user-1 source-1] (:key %))))
+                       last
+                       :value
+                       :count)))
+          (is (= 1 (-> journal
+                       (get-in [:topics :user-stats])
+                       (->>
+                        (filter #(= [user-1 source-1] (:key %))))
+                       last
+                       :value
+                       :sum)))))
+
+      (testing "user-2 steps gets 2 counts of 50 steps while user-1 does 3 pushups"
+        (let [commands [[:write! :user-sources user-1-step-counter]
+                        [:write! :user-sources user-1-pushup-counter]
+                        [:write! :user-sources user-2-step-counter]
+                        [:write! :events {:id (java.util.UUID/randomUUID)
+                                          :event-id (java.util.UUID/randomUUID)
+                                          :source-id source-3
+                                          :value 50
+                                          :timestamp (System/currentTimeMillis)}]
+                        [:write! :events {:id (java.util.UUID/randomUUID)
+                                          :event-id (java.util.UUID/randomUUID)
+                                          :source-id source-2
+                                          :value 3
+                                          :timestamp (System/currentTimeMillis)}]
+                        [:write! :events {:id (java.util.UUID/randomUUID)
+                                          :event-id (java.util.UUID/randomUUID)
+                                          :source-id source-3
+                                          :value 50
+                                          :timestamp (System/currentTimeMillis)}]
+                        [:watch (fn [journal]
+                                  (->> (get-in journal [:topics :user-stats])
+                                       (filter #(= [user-2 source-3] (:key %)))
+                                       (count)
+                                       (= 2)))]]
+              {:keys [results journal]} (j.t/run-test machine commands)]
+
+          (is (every? #(= :ok (:status %)) results))
+          ;; there where two step updates for user 3
+          (is (= 2 (-> journal
+                       (get-in [:topics :user-stats])
+                       (->>
+                        (filter #(= [user-2 source-3] (:key %))))
+                       last
+                       :value
+                       :count)))
+          ;; total steps for user 3 was 100
+          (is (= 100 (-> journal
+                         (get-in [:topics :user-stats])
+                         (->>
+                          (filter #(= [user-2 source-3] (:key %))))
+                         last
+                         :value
+                         :sum)))
+          ;; gets one pushup entry with 3 for user 1
+          (is (= 1 (-> journal
+                       (get-in [:topics :user-stats])
+                       (->>
+                        (filter #(= [user-1 source-2] (:key %))))
+                       last
+                       :value
+                       :count)))
+          (is (= 3 (-> journal
+                       (get-in [:topics :user-stats])
+                       (->>
+                        (filter #(= [user-1 source-2] (:key %))))
+                       last
+                       :value
+                       :sum))))))))
+#+end_src
+*** We run the tests
+#+begin_src clojure :tangle run_tests.clj :results pp :ns flex-test :exports both
+(run-tests)
+#+end_src
+
+#+RESULTS:
+: 
+: Testing flex-test
+: 
+: Ran 1 tests containing 8 assertions.
+: 0 failures, 0 errors.
+: {:test 1, :pass 8, :fail 0, :error 0, :type :summary}
+** Tests also using kafka-transport
+*** First lets make some helpers
+#+begin_src clojure :tangle test/test_helpers.clj :results silent :ns test-helpers
+(ns test-helpers
+  (:require [jackdaw.streams.mock :as j.s.m]
+            [jackdaw.test :as j.t]
+            [jackdaw.test.fixtures :as j.t.f]))
+
+;; Transport helpers
+(def ^:dynamic *use-kafka* false)
+
+(defn test-transport
+  [topics build-topology-fn]
+  (if *use-kafka*
+    (let [kafka-test-config {"bootstrap.servers" "localhost:9092"
+                             "group.id" "ce-data-aggregator-test"}]
+      (j.t/kafka-transport
+       kafka-test-config
+       topics))
+    (let [mock-driver (-> (j.s.m/streams-builder)
+                          (build-topology-fn)
+                          (j.s.m/streams-builder->test-driver))]
+      (j.t/mock-transport {:driver mock-driver}
+                          topics))))
+
+;; Run test helpers
+(defn results-ok? [tm-results]
+  (every? #(= :ok %) (map :status tm-results)))
+
+(defn run-commands [topics build-topology-fn app-config commands]
+  (j.t.f/with-fixtures [(j.t.f/integration-fixture
+                         (fn [_]
+                           build-topology-fn)
+                         {:broker-config {"bootstrap.servers" "localhost:9092"}
+                          :topic-metadata topics
+                          :app-config (-> app-config
+                                          (update "application.id" #(str % "-" (java.util.UUID/randomUUID)))
+                                          (assoc "cache.max.bytes.buffering" "0"))
+                          :enable? *use-kafka*})]
+    (j.t/with-test-machine
+      (test-transport topics build-topology-fn)
+      (fn [machine]
+        (j.t/run-test machine commands)))))
+
+;; Journal helpers
+(defn raw-messages
+  [journal topic-name]
+  (sort-by :offset (get-in journal [:topics topic-name])))
+
+(defn messages
+  [journal topic-name]
+  (->> (raw-messages journal topic-name)))
+
+(defn messages-by-kv-fn
+  [journal topic-name ks pred]
+  (->> (messages journal topic-name)
+       (filter (fn [m]
+                 (pred (get-in m ks))))))
+
+(defn messages-by-kv
+  [journal topic-name ks value]
+  (messages-by-kv-fn journal topic-name ks #(= value %)))
+
+(defn message-by-kv
+  [journal topic-name ks value]
+  (first (messages-by-kv-fn journal topic-name ks #(= value %))))
+
+(defn by-key [topic-name ks id]
+  (fn [journal]
+    (last (messages-by-kv journal topic-name ks id))))
+
+(defn by-keys [topic-name ks ids]
+  (fn [journal]
+    (messages-by-kv-fn journal topic-name ks (set ids))))
+
+(defn by-id [topic id]
+  (by-key topic [:id] id))
+
+(defn by-message-key [topic key]
+  (by-key topic [:key] key))
+#+end_src
+*** Lets refactor
+#+begin_src clojure :tangle test/flex_test_2.clj :results silent :ns flex-test-2
+(ns flex-test-2
+  (:require [clojure.test :refer :all]
+            [jackdaw.streams.mock :as j.s.m]
+            [jackdaw.test :as j.t]
+            [jackdaw.test.commands.watch :as watch]
+            [test-helpers]))
+
+(defn user-source
+  [user source name]
+  {:id source
+   :name name
+   :user-id user})
+
+(defn event
+  [source value]
+  {:id (java.util.UUID/randomUUID)
+   :event-id (java.util.UUID/randomUUID)
+   :source-id source
+   :value value
+   :timestamp (System/currentTimeMillis)})
+
+(deftest topology-test
+  (let [topology-topics {:events (flex/topic-config "events")
+                         :user-sources (flex/topic-config "user-sources")
+                         :events-by-source (flex/topic-config "events-by-source")
+                         :events-by-user-and-source (flex/topic-config "events-by-user-and-source")
+                         :user-stats (flex/topic-config "user-stats")}
+
+        user-1 (java.util.UUID/randomUUID)
+        user-2 (java.util.UUID/randomUUID)
+
+        source-1 (java.util.UUID/randomUUID)
+        source-2 (java.util.UUID/randomUUID)
+        source-3 (java.util.UUID/randomUUID)
+
+        ;; User Sources
+        user-1-step-counter (user-source user-1 source-1 "step counter")
+        user-1-pushup-counter (user-source user-1 source-2 "pushup counter")
+        user-2-step-counter (user-source user-2 source-3 "step counter")]
+
+    (binding [test-helpers/*use-kafka* true
+              watch/*default-watch-timeout* 1000]
+      (testing "user-1 takes 1 step"
+        (let [step (event source-1 1)
+              commands [[:write! :user-sources user-1-step-counter]
+                        [:write! :events step]
+                        [:watch (test-helpers/by-message-key :user-stats [user-1 source-1])]]
+              {:keys [results journal]} (test-helpers/run-commands
+                                         topology-topics
+                                         flex/build-topology
+                                         (flex/app-config)
+                                         commands)]
+          ;; check status on every command
+          (is (test-helpers/results-ok? results))
+          ;; gets one step entry with one step count
+          (is (= 1 (-> ((test-helpers/by-message-key :user-stats [user-1 source-1]) journal)
+                       :value
+                       :count)))
+          (is (= 1 (-> ((test-helpers/by-message-key :user-stats [user-1 source-1]) journal)
+                       :value
+                       :sum)))))
+
+      (testing "user-2 steps gets 2 counts of 50 steps while user-1 does 3 pushups"
+        (let [commands [[:write! :user-sources user-1-step-counter]
+                        [:write! :user-sources user-1-pushup-counter]
+                        [:write! :user-sources user-2-step-counter]
+                        [:write! :events (event source-3 50)]
+                        [:write! :events (event source-2 3)]
+                        [:write! :events (event source-3 50)]
+                        [:watch (test-helpers/by-message-key :user-stats [user-2 source-3])]]
+              {:keys [results journal]} (test-helpers/run-commands
+                                         topology-topics
+                                         flex/build-topology
+                                         (flex/app-config)
+                                         commands)]
+          (is (every? #(= :ok (:status %)) results))
+          ;; there where two step updates for user 3
+          (is (= 2 (-> ((test-helpers/by-message-key :user-stats [user-2 source-3]) journal)
+                       :value
+                       :count)))
+          ;; total steps for user 3 was 100
+          (is (= 100 (-> ((test-helpers/by-message-key :user-stats [user-2 source-3]) journal)
+                         :value
+                         :sum)))
+          ;; gets one pushup entry with 3 for user 1
+          (is (= 1 (-> ((test-helpers/by-message-key :user-stats [user-1 source-2]) journal)
+                       :value
+                       :count)))
+          (is (= 3 (-> ((test-helpers/by-message-key :user-stats [user-1 source-2]) journal)
+                       :value
+                       :sum))))))))
+#+end_src
+** Run tests
+#+begin_src clojure :tangle run_tests.clj :results pp :ns flex-test-2 :exports both
+(run-tests)
+#+end_src
+
+#+RESULTS:
+: 
+: Testing flex-test-2
+: 
+: Ran 1 tests containing 8 assertions.
+: 0 failures, 0 errors.
+: {:test 1, :pass 8, :fail 0, :error 0, :type :summary}
