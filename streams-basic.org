@@ -223,7 +223,7 @@
 
 * Simple pipe topology example
 ** Overview
-#+BEGIN_SRC dot :file pipe.png :cmdline -Kdot -Tpng :exports both
+#+BEGIN_SRC dot :file streams-basic/pipe.png :cmdline -Kdot -Tpng :exports both
 digraph {
 splines=true;
 node [shape=box];
@@ -233,7 +233,7 @@ input -> output
 #+END_SRC
 
 #+RESULTS:
-[[file:pipe.png]]
+[[file:streams-basic/pipe.png]]
 
 ** Define topology
 #+begin_src clojure :tangle streams-basic/src/pipe.clj :results silent :ns pipe
@@ -358,7 +358,7 @@ input -> output
 : ([nil "mundo"] [nil {:foo "hola"}])
 * The flex app
 ** Overview
-#+BEGIN_SRC dot :file flex.png :cmdline -Kdot -Tpng :exports both
+#+BEGIN_SRC dot :file streams-basic/flex.png :cmdline -Kdot -Tpng :exports both
 digraph   {
 splines=true;
 node [shape=box];
@@ -377,7 +377,7 @@ evus -> s
 #+END_SRC
 
 #+RESULTS:
-[[file:flex.png]]
+[[file:streams-basic/flex.png]]
 ** Define topology
 #+begin_src clojure :tangle streams-basic/src/flex.clj :results silent :ns flex
 (ns flex
@@ -588,10 +588,6 @@ evus -> s
 
 #+RESULTS:
 : ()
-
-
-
-
 
 * Test Machine
 ** Tests using mock-transport aka (TopologyTestDriver) 
