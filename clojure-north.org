@@ -34,16 +34,16 @@
 ** Introduction
 
   Hello! My name is Francisco but I go as Paco. I work at Funding Circle and
-  I've been there for almost 3 years now. One of the things that most interested
-  me at the time I joined was to learn and work with Kafka. I also am a
+  have been there for almost 3 years. One of the things that most interested
+  me at the time I joined was to learn and work with Kafka. I'm also a
   relatively young 36 year old that has gone through major heart and brain
   surgery. I share this information because I'll use it to paint a picture about
   testing in production systems later on.
 
-  I want also want to share that I am far from being an Emacs or Org-mode expert
+  I also want to share that I am far from being an Emacs or Org-mode expert
   so do share cool tips. Phone lines are always open.
 
-  But first, lest talk a bit about how I got around using Literate Programming
+ First, lest talk a bit about how I got around to using Literate Programming
   as a tool to learn new things.
 
 ** (LAFT) Learning all the f*ing time.
@@ -52,9 +52,9 @@
   project if I am not learning something new. However one of the drawbacks of
   being this curious (or better said: `distracted by shiny new things`) is that
   reinforcing knowledge becomes a challenge. That's why I have particular
-  interest on finding better ways of documenting things I learned for future me.
+  interest in finding better ways of documenting things I learned for future me.
 
-  Naturally, I've gather a vast amount of notes, Gists and code with a ton of
+  Naturally, I've gathered a vast amount of notes, Gists and code with a ton of
   comments that make little sense a few days after I wrote them. If I get back
   to something before knowledge gets fully reinforced, I end up having to spend
   a lot of extra time to load up again with the necessary context.
@@ -64,9 +64,9 @@
   be hard. For example, I came in to my first Clojure job not knowing much about
   Clojure or functional programming and I made the wrong choice to also try to
   learn Emacs at the same time. I saw my coworkers do amazing cool Clojure stuff
-  in Emacs and of course I was eager to learn both at the same time. I made
-  the incorrect assumption that the power of Clojure came along the power of
-  Emacs. No amount of notes and practice was making me productive in a
+  in Emacs and of course I was eager to learn both. I made
+  the incorrect assumption that the power of Clojure came along with the power of
+  Emacs. But no amount of notes and practice would make me productive in a
   reasonable amount of time. My lead at the time suggested I drop Emacs and
   actually focus on the language and less on the tooling. In hindsight this was
   obvious but my nature is to be overly optimistic and curious, so be aware of
@@ -84,7 +84,7 @@
   documentation, specially if all the documentation is reachable via the README
   file. I am specially a fan of Getting started sections. My code folder often
   became a graveyard of failed starts. I used to copy the getting started code
-  and paste it on my editor and run it, then I pat my back and walked away
+  and paste it on my editor and run it, then I would pat my back and walk away
   believing a I had learned something new. As you can surmise this is almost
   never what the authors intend. I think in those cases the authors just want to
   "flex" their awesome API design abilities. The Clojure community seems to have
@@ -143,11 +143,11 @@ research and open access purposes.
   variety of ways better suited each business domain. In our case,
   things like processing loan applications, servicing a loan, disbursing money,
   handling the books, reconciling transactions, etc. There is no single data
-  model like in traditional relational databases. Instead we have only have
+  model like in traditional relational databases. Instead we only have
   services that /produce/ events onto topics and services that /consume/ from
   those topics, each with their own offsets.
 
-  For us that decoupling is essential because data being transacted upstream
+  That decoupling is essential to us, because data being transacted upstream
   does not lock any downstream process. For example, one of the monolithic
   systems we replaced with this architecture was in charge of originating and
   partitioning loans. The amount of time and IO spent on this was unsustainable
@@ -249,8 +249,8 @@ research and open access purposes.
   Which bring me to my personal health story and why we should be careful with
   expensive tests.
 
-  On my first year of college I fell into medical hardship due to a very
-  expensive and inconclusive tests. I was miss diagnosed with epilepsy after a few
+  On my first year of college I fell into medical hardship due to very
+  expensive and inconclusive tests. I was misdiagnosed with epilepsy after a few
   consecutive fainting spells. I was young and inexperienced and let fear put me on
   a treatment I could not afford and did not need.
 
@@ -261,10 +261,10 @@ research and open access purposes.
   with simple observations, simple tests if you will.
  
   Years later the fainting spells came back and I still had no diagnosis. I had
-  moved to San Francisco and doctors this side of the border still had no clue
+  moved to San Francisco and doctors this side of the border had no clue
   either. One night the right circumstances for a diagnosis came after I passed
   out following a somewhat strong earthquake. My girlfriend (now wife) saw me
-  pass out insisted we go to the hospital in spite me telling her this was a
+  pass out and insisted we go to the hospital in spite me telling her this was a
   thing that happened to me sometimes. Lucky for me I passed out at the hospital
   while I was connected to beeping machines they saw my heart flat line. Much
   like bugs in production this problem was not reproducible under normal
@@ -285,7 +285,7 @@ research and open access purposes.
   do some minor headaches I was having at the time. Turns out the other deadly
   tumor was close to becoming a real big problem. Shortly after, I had brain
   surgery to remove it. I was spared from a really terrible outcome by chance
-  and by a radiologist that wasn't clouded by my fainting spells.
+  and by a radiologist that wasn't distracted by my fainting spells.
 
   Moral of the story is that the top of the testing pyramid is not bad but its
   value is only worth if you know what you are looking for. They are also can
@@ -298,7 +298,7 @@ research and open access purposes.
   and useless. In recent years the practice of [[https://stackify.com/what-is-structured-logging-and-why-developers-need-it][Structured Logging]] has become
   more popular. This practice also jives well with the "It's just data" Clojure
   mantra. The idea is fairly straightforward, we log data instead of
-  unstructured text. This has many bennefits like making it easier to find
+  unstructured text. This has many benefits like making it easier to find
   needles in the stacks upon stacks of logs produced by multiple services but
   also makes problems easier to diagnose and trace. This practice is not without
   its flaws but can be greately mitigated by applying it [[https://www.graylog.org/post/3-steps-to-structuring-logs-effectively][effectively]]. Some best
@@ -336,7 +336,7 @@ research and open access purposes.
 
 ** Demo time
    
-  We recently had the opportunity of putting all this practices from the past
+  We recently had the opportunity of putting all these practices from the past
   together in an urgent project related to the COVID pandemic. We were tasked
   with building a connector service to submit PPP loan applications to the Small
   Business Administration (SBA). Time to do more Literate Programming with a
