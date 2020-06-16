@@ -343,7 +343,7 @@ research and open access purposes.
   simplified version of the connector to showcase the production practices
   previously mentioned.
 
-  + [[production-app.org][Production App]]
+  + [[file:production-app.org][Production App]]
 
 ** Thanks and acknowledgments
    
@@ -358,3 +358,4 @@ research and open access purposes.
    + [[https://www.youtube.com/watch?v=qNn2ykAaKis][Event Sourced Systems with Kafka, Clojure, and Jackdaw]]
    + [[https://www.confluent.io/blog/testing-event-driven-systems/][Testing Event Driven Systems]]
    + [[https://www.confluent.io/blog/test-kafka-streams-with-topologytestdriver/][Testing Kafka Streams Using TestInputTopic and TestOutputTopic]]
+
