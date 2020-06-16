@@ -28,7 +28,7 @@
  * Identify when Literate Programming is a good fit
  * Use Jackdaw to create production ready Kafka streams appps
  * Leverage best practices early on for faster turanound of Kafka Streams apps 
- * Showcase how we implemnented a production Streaming app in weeks with Jackdaw
+ * Showcase how we implemented a production Streaming app in weeks with Jackdaw
 
 * Script
 ** Introduction
@@ -43,12 +43,12 @@
   I also want to share that I am far from being an Emacs or Org-mode expert
   so do share cool tips. Phone lines are always open.
 
- First, lest talk a bit about how I got around to using Literate Programming
+ First, let's talk a bit about how I got around to using Literate Programming
   as a tool to learn new things.
 
 ** (LAFT) Learning all the f*ing time.
 
-  I consider myself a lifelong learner. Its hard for me to stay engaged on a
+  I consider myself a lifelong learner. It's hard for me to stay engaged on a
   project if I am not learning something new. However one of the drawbacks of
   being this curious (or better said: `distracted by shiny new things`) is that
   reinforcing knowledge becomes a challenge. That's why I have particular
@@ -316,8 +316,8 @@ research and open access purposes.
     
 *** Monitoring and metrics
 
-  Structred logging alone is not enough for diagnosis of production systems.
-  Realtime information is as important and valuable. Much like that hear monitor
+  Structured logging alone is not enough for diagnosis of production systems.
+  Realtime information is as important and valuable. Much like that heart monitor
   that showed me flatline lead to my diagnosis, no volume of data will have as
   much impact as realtime feedback. Metrics can also be [[https://martinfowler.com/articles/useOfMetrics.html][misutilized]] so here are
   some of the main practices for metrics:

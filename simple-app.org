@@ -147,7 +147,7 @@ lets do more of that now.
 : "Hello World"
 
 First of notice we are still setting results to "output". This is because this
-function prints to standard out. Thats not something new, but chechout the
+function prints to standard out. Thats not something new, but checkout the
 ~:tangle~ header. The value is set to a "scratch.clj" file in the dev directory.
 That file will now become a bucket where all the one off commands I run will go
 to. I thought this was a neat concept as I can go back to that file and just see
@@ -182,7 +182,7 @@ If the evaluation returns something that looks like a list we can use
 - bar
 - baz
 
-Org will try to print things like sequiences of sequiences as tables by default
+Org will try to print things like sequences of sequences as tables by default
 but it can be forced by setting  ~:results value list~
 
 #+begin_src clojure :tangle simple-app/dev/scratch.clj :exports both
@@ -200,7 +200,7 @@ but it can be forced by setting  ~:results value list~
 | :one | :two | :three | :four |
 |    0 |    1 |      2 |     3 |
 
-I could not find s a super clean way to print maps nicely. Fortunately clojure
+I could not find a super clean way to print maps nicely. Fortunately clojure
 pprint has us covered.
 
 #+begin_src clojure :tangle simple-app/dev/scratch.clj :results output :exports both
