@@ -1,0 +1,813 @@
+* Production (like) App
+
+This is an example of what a production Jackdaw app would roughly look like
+using Literate programming.
+
+** Project Setup
+
+The initial setup is fairly standard. Should not be too different from your
+regular Clojure app setups. We'll include resources and bin folder for
+supporting files for deployment. We'll also include a sample Circle CI
+configuration mostly for illustration purposes.
+
+#+BEGIN_SRC zsh :results silent
+mkdir -p prod-app/resources
+mkdir -p prod-app/src/prod_app
+mkdir -p prod-app/src/prod_app/specs
+mkdir -p prod-app/test/prod_app
+mkdir -p prod-app/test/resources
+mkdir -p prod-app/dev
+mkdir -p prod-app/bin
+mkdir -p prod-app/.circleci
+#+END_SRC
+
+** Dependencies
+
+Lets start with our deps file. We will include everything needed for building a
+production ready Jackdaw app. I'll go over the highlights after the snippet.
+
+#+begin_src clojure :tangle prod-app/deps.edn
+{:paths ["src" "resources"]
+
+ :deps {org.clojure/clojure {:mvn/version "1.10.1"}
+        ;; Core App
+        fundingcircle/jackdaw {:mvn/version "0.7.4"
+                               :exclusions [org.apache.zookeeper/zookeeper
+                                            org.slf4j/slf4j-log4j12]}
+        integrant {:mvn/version "0.7.0"}
+        com.outpace/config {:mvn/version "0.13.2"}
+
+        ;; Support
+        danlentz/clj-uuid {:mvn/version "0.1.9"}
+        org.clojure/algo.generic {:mvn/version "0.1.3"}
+        org.clojure/data.json {:mvn/version "1.0.0"}
+        org.clojure/data.zip {:mvn/version "1.0.0"}
+        org.clojure/tools.logging {:mvn/version "1.0.0"}
+        clj-http {:mvn/version "3.10.1"}
+
+        ;; Logging
+        ch.qos.logback/logback-classic {:mvn/version "1.2.3"}
+        cambium/cambium.core {:mvn/version "0.9.3"}
+        cambium/cambium.codec-cheshire {:mvn/version "0.9.3"}
+        cambium/cambium.logback.json {:mvn/version "0.4.3"
+                                      :exlusions [ch.qos.logback/logback-classic]}
+        cambium/cambium.logback.core {:mvn/version "0.4.3"
+                                      :exclusions [org.slf4j/slf4j-log4j12]}
+        ;; Metrics and reporting
+        io.prometheus.jmx/jmx_prometheus_javaagent {:mvn/version "0.12.0"}
+        camdez/honeybadger {:mvn/version "0.4.1"}
+        metrics-clojure {:mvn/version "2.10.0"}}
+
+ :aliases
+ {:dev
+  {:extra-paths ["dev" "test" "test/resources"]
+   :extra-deps {integrant/repl {:mvn/version "0.3.1"}
+                org.apache.kafka/kafka-streams-test-utils {:mvn/version "2.3.1"}
+                org.apache.kafka/kafka_2.11 {:mvn/version "2.3.1"
+                                             :exclusions [org.slf4j/slf4j-log4j12]}}}
+
+  :check {:extra-deps {athos/clj-check
+                       {:git/url "https://github.com/athos/clj-check.git"
+                        :sha "b48d4e7000586529f81c1e29069b503b57259514"}}
+          :main-opts ["-m" "clj-check.check"]}
+
+  :test {:extra-paths ["test" "test/resources"]
+         :extra-deps {com.cognitect/test-runner
+                      {:git/url "https://github.com/cognitect-labs/test-runner.git"
+                       :sha "209b64504cb3bd3b99ecfec7937b358a879f55c1"}
+                      org.apache.kafka/kafka-streams-test-utils {:mvn/version "2.3.1"}
+                      org.apache.kafka/kafka_2.11 {:mvn/version "2.3.1"
+                                                   :exclusions [org.slf4j/slf4j-log4j12]}}
+         :main-opts ["-m" "cognitect.test-runner"]}
+
+  :uberjar {:extra-deps {seancorfield/depstar {:mvn/version "0.5.2"}}
+            :main-opts ["-m" "hf.depstar.uberjar" "sba-connector.jar"]}}
+
+ :mvn/local-repo ".m2"
+
+ :mvn/repos
+ {"confluent" {:url "https://packages.confluent.io/maven/"}}}
+#+end_src
+
+*** Core app.
+  
+  The main recommended components of a Jackdaw streams app. We recommend
+  [[https://github.com/weavejester/integrant][Integrant]] to assemble and run Jackdaw applications. We'll see how that is done
+  later on. Loading external configuration on you system has been something that
+  tends to vary a lot in our apps. We've recently been giving [[https://github.com/outpace/config][Outpace config]] a
+  try. I personally like the approach this library takes and its features but
+  you could as easily use any other configuration library out there with minor
+  modifications.
+
+*** Logging
+
+  For logging I have found that the [[https://cambium-clojure.github.io/][Cambium]] library offers the best features and
+  flexibility for most structured logging setups. Setting up logging
+  successfully in any Clojure app can be a pain in the butt. Cambium is
+  implemented on top of Logback which I consider the best in class logging
+  solution for JVM based setups. It works well with the underlying Kafka
+  libraries as well as our own logging statements. Other solutions fall short in
+  one way or other. This one is a great middle-ground between simplicity and
+  power.
+
+*** Metrics and reporting
+
+  This section is totally dependent on your personal infrastructure. We use
+  prometheus for real time metrics and dashboards and honeybadger for exception
+  reporting. I will provide setup for an environment with such tooling for demo
+  purposes but keep in mind this can vary greatly.
+
+*** Support and Misc.
+
+  There are other libraries that we use for support for example depstar for
+  building our jarfile, test-runner to run our tests locally and on CI, etc.
+  This support dependencies will become self explaining as we walk thought this
+  demo. One last note, we set ~:mvn/local-repo~ for our CI setup so that we can
+  easily cache dependencies between builds.
+
+** Overview
+ 
+  Onto the main course. For this example we'll showcase a simple topology
+  similar to the one we implemented to submit loans to the SBA. This example
+  omits a ton of details around authenticating and communicating with external
+  services nor any details about how we actually deal with loans or customer
+  information. It is meant for illustrative purposes only.
+
+*** The problem.
+
+  A global pandemic is underway and small businesses are badly hit due go
+  lock-down measures. The government put in place a program to help small
+  businesses stay open and help them keep employees on payroll. The government
+  approves the Payment Protection Program (PPP) and Funding Circle is approved
+  as a lender. The goal now is to build an app as quickly as possible to submit
+  loans to the Small Business Administration (SBA) for approval before the
+  funding of the program starts.
+
+  Fortunately we have already systems in place to originate and service loans.
+  We have teams already working on the marketing and sales part that would
+  gather all the info from customers wishing to apply for a PPP loan. The goal
+  is to create a service that will gather and prepare loans data for submission
+  to the SBA in a format that they support. The SBA requires loans to have
+  specific information in a specific format. We also want to avoid sending
+  incomplete or invalid data as there are request limits per lender. We have to
+  aggregate data in real time and inform upstream systems (Salesforce in this
+  case) when there is enough valid data for a loan to be submitted. Finally,
+  when an underwriter is ready to submit a loan the trigger and event that flows
+  down to our topology so that we can submit the loan application to the SBA.
+
+  Let's see generally how that looks:
+
+#+BEGIN_SRC dot :file prod-app/topology.png :cmdline -Kdot -Tpng :exports results
+digraph Topology {
+  bgcolor="transparent";
+  external_loan_application [shape=box];
+  external_loan_application -> update_sba_loan;
+  sba_loan_application_updated [shape=box];
+  update_sba_loan -> sba_loan_application_updated;
+  external_loan_submit_triggered [shape=box];
+  external_loan_submit_triggered -> send_loan_application_to_sba;
+  sba_results_available [shape=box];
+  send_loan_application_to_sba -> sba_results_available;
+  state_store [shape=cylinder];
+  state_store -> update_sba_loan;
+  update_sba_loan -> state_store;
+  state_store -> send_loan_application_to_sba; 
+}
+#+END_SRC
+
+#+RESULTS:
+[[file:prod-app/topology.png]]
+
+  Now that we have a general understanding of what our app should do lets
+  go ahead and implement it.
+
+** Supporting code
+
+  Jackdaw allows you to go ahead and create a Kafka Streams app with very little
+  code. There are some great [[https://github.com/FundingCircle/jackdaw/tree/master/examples][examples]] in the Jackdaw repository. I suggest you
+  also look at those. For production ready apps there is a bit more of scaffolding
+  or support code that we need. 
+
+*** Data model
+
+  A great place to start is always the data model. In Clojure we use specs for
+  that. Lets start with the base attributes on our data model. NOTE: This is a
+  simplified data model.
+
+#+BEGIN_SRC clojure :tangle prod-app/src/prod_app/specs/attributes.clj :results silent
+(ns prod-app.specs.attributes
+  "This namespace contains attribute specs."
+  (:require [clojure.spec.alpha :as s]))
+
+(s/def :loan-application/employee-count string?)
+(s/def :loan-application/requested-amount string?)
+(s/def :loan-application/sba-loan-number string?)
+
+(s/def :company/tax-id string?)
+(s/def :company/business-name string?)
+(s/def :company/city-name string?)
+(s/def :company/country-code string?)
+(s/def :company/state-code string?)
+(s/def :company/street-name string?)
+(s/def :company/zip-code string?)
+(s/def :company/primary-phone string?)
+
+(s/def :metadata/loan-application-id uuid?)
+
+(s/def :external/opportunity-id string?)
+(s/def :external/trigger-id uuid?)
+#+END_SRC
+
+  Now we define our reader specs. These are the specs we use to read from the
+  internal state store or message streams. This specs are usually more stringent
+  as these are the ones used for validating our business logic.
+
+#+BEGIN_SRC clojure :tangle prod-app/src/prod_app/specs/reader_specs.clj :results silent
+(ns prod-app.specs.reader-specs
+  "Spec for reads from internal state and message streams.
+  Use this spec for validation AFTER READING FROM INTERNAL STATE or
+  reading messages from Kafka"
+  (:require [clojure.spec.alpha :as s]
+            [prod-app.specs.attributes]
+            [clojure.edn :as edn]))
+
+(def valid-requested-amount?
+  (fn [{:keys [:loan-application/requested-amount] :as data}]
+    (when (every? #(contains? data %) [:reader-specs.loan-application/requested-amount])
+      (<= (edn/read-string requested-amount) 100))))
+
+(s/def ::loan-application
+  (s/and
+   (s/keys :req-un [:metadata/loan-application-id
+                    :loan-application/employee-count
+                    :loan-application/requested-amount
+                    :company/tax-id
+                    :company/business-name
+                    :company/city-name
+                    :company/state-code
+                    :company/street-name
+                    :company/zip-code
+                    :company/primary-phone]
+           :opt-un [:loan-application/sba-loan-number
+                 :company/country-code])
+   valid-requested-amount?))
+
+(s/def ::external-loan-application
+  (s/keys :req-un [:external/opportunity-id
+                   :loan-application/employee-count
+                   :loan-application/requested-amount
+                   :company/tax-id
+                   :company/business-name
+                   :company/city-name
+                   :company/state-code
+                   :company/street-name
+                   :company/zip-code
+                   :company/primary-phone]
+          :opt-un [:company/country-code]))
+
+(s/def ::external-trigger
+  (s/keys :req-un [:external/opportunity-id
+                   :exteral/trigger-id]))
+#+END_SRC
+
+#+begin_src clojure :tangle prod-app/dev/scratch.clj :results value :exports both
+(s/valid? ::loan-application {})
+#+end_src
+
+#+RESULTS:
+: false
+
+
+  Writer specs are the specs we use to write to Kafka topics. This specs are
+  usually less stringent as they only require the minimum data required for us
+  consider a valid topic. For example notice how both reader and writer specs
+  define ~::loan-application~. The reason for the difference is that when we write
+  to the topic we are just aggregating data coming from the upstream external
+  topics. The reader specs validate that a loan application is considered
+  complete. Our topology will produce to ~sba-loan-updated-event~ with the right
+  value for ~:writer-specs.metadata/loan-application-is-complete~.
+
+#+BEGIN_SRC clojure :tangle prod-app/src/prod_app/specs/writer_specs.clj :results silent
+(ns prod-app.specs.writer-specs
+  "Spec for writes to internal state and message streams.
+  Use this spec for validation BEFORE WRITING TO INTERNAL STATE or publishing messages to Kafka."
+  (:require [clojure.spec.alpha :as s]
+            [prod-app.specs.attributes]))
+
+(s/def ::loan-application
+  (s/keys :req-un [:writer-specs.metadata/loan-application-id]
+
+          :opt-un [:writer-specs.loan-application/employee-count
+                   :writer-specs.loan-application/requested-amount
+                   :writer-specs.loan-application/sba-loan-number
+                   
+                   :writer-specs.company/tax-id
+                   :writer-specs.company/business-name
+                   :writer-specs.company/city-name
+                   :writer-specs.company/country-code
+                   :writer-specs.company/state-code
+                   :writer-specs.company/street-name
+                   :writer-specs.company/zip-code
+                   :writer-specs.company/primary-phone]))
+
+(s/def :writer-specs.sba/status #{"success" "failure" "cancelled"})
+(s/def :writer-specs.sba/result string?)
+(s/def :writer-specs.sba/loan-number (s/nilable string?))
+
+(s/def ::result
+  (s/keys :req-un [:writer-specs.sba/status
+                   :writer-specs.sba/result]
+          :opt-un [:writer-specs.sba/loan-number]))
+
+(s/def :writer-specs.metadata/loan-application-id :metadata/loan-application-id)
+(s/def :writer-specs.metadata/exteral-opportunity-id :external/opportunity-id)
+
+(s/def :writer-specs.metadata/id uuid?)
+(s/def :writer-specs.metadata/correlation-id uuid?)
+(s/def :writer-specs.metadata/published-timestamp int?)
+(s/def :writer-specs.metadata/published-by string?)
+
+(s/def ::metadata
+  (s/keys :req-un [:writer-specs.metadata/id
+                   :writer-specs.metadata/correlation-id
+                   :writer-specs.metadata/published-timestamp
+                   :writer-specs.metadata/published-by]))
+
+(s/def :writer-specs.metadata/loan-application-is-complete boolean?)
+(s/def :writer-specs.metadata/problem string?)
+
+(s/def :writer-specs.metadata/problems
+  (s/* :writer-specs.metadata/problem))
+
+(s/def ::sba-loan-application-updated-event
+  (s/merge ::loan-application
+           (s/keys :req [:writer-specs.metadata/loan-application-is-complete])
+           ::metadata
+           (s/keys :req [:writer-specs.metadata/problems])))
+
+(s/def ::sba-result-available-event
+  (s/merge ::result
+           ::loan-application
+           ::metadata))
+#+END_SRC
+
+*** Logging and metrics
+
+We'll define a logging namespace that can be used by other namespaces in our
+application. Instead of directly calling the logging libraries API we mask them
+with our own. This has the benefit of being able to switch logging back-ends
+more easily and decorate log entries as we see fit. In this case we will are
+able to create a custom logging function that can also produce metrics for
+specific logging events. This becomes a super powerful way to be able to
+diagnose and track the health of our application.
+
+#+BEGIN_SRC clojure :tangle prod-app/src/prod_app/log.clj :results silent
+(ns prod-app.log
+  "Thin wrappers around cambium's logging fns."
+  (:require [cambium.codec :as codec]
+            [cambium.core :as cambium-core]
+            [cambium.logback.json.flat-layout :as flat]
+            [clojure.set :as set]
+            [metrics.meters :as meters]))
+
+;; See https://cambium-clojure.github.io/documentation.html#cambium-codec
+(flat/set-decoder! codec/destringify-val)
+
+(defmacro info
+  "structured log at the INFO level"
+  {:arglists '([msg] [mdc msg] [mdc throwable msg])}
+  [& args]
+  `(cambium-core/info ~@args))
+
+(defmacro warn
+  "structured log at the WARN level"
+  {:arglists '([msg] [mdc msg] [mdc throwable msg])}
+  [& args]
+  `(cambium-core/warn ~@args))
+
+(defmacro error
+  "structured log at the ERROR level"
+  {:arglists '([msg] [mdc msg] [mdc throwable msg])}
+  [& args]
+  `(cambium-core/error ~@args))
+
+(defn ->metric-name [title]
+  ["sba-connector" "event" title])
+
+(defn test-metrics [metrics-registry]
+  (meters/mark! (meters/meter metrics-registry (->metric-name "test-event"))))
+
+(defn logger
+  "Super logger function"
+  [{:keys [level event message throwable metrics-registry]
+          :or {level :info
+               message ""
+               event "unknown-event"
+               throwable nil
+               metrics-registry nil}
+          :as all-keys}
+   & things]
+  (let [other-keys (apply (partial dissoc all-keys) [:level :event :message :metrics-registry])
+        log-fn #(cambium-core/log level % throwable message)]
+    (as-> (apply merge things) mdc
+      (select-keys mdc [:id
+                        :body
+                        :status
+                        :result
+                        :loan-number
+                        :topic-name
+                        :opportunity-id
+                        :loan-application-id
+                        :loan-number
+                        :sba-loan-number
+                        :sba-result
+                        :sba-status
+                        :metadata/id
+                        :sba/status
+                        :sba/loan-number
+                        :sba/result
+                        :metadata/loan-application-id])
+      (set/rename-keys mdc {:sba/status :status
+                            :sba/loan-number :sba-loan-number
+                            :sba/result :result
+                            :metadata/id :id
+                            :metadata/loan-application-id :loan-application-id})
+      (merge mdc
+             {:event event}
+             other-keys)
+      (log-fn mdc)))
+  ;; Record event in metrics
+  (when metrics-registry
+    (meters/mark! (meters/meter metrics-registry (->metric-name event)))))
+#+END_SRC
+
+*** Transducers
+
+The Kafka Streams DSL models streams apps as Topologies where transformations
+are applied to collections of data (topics). It provides abstractions like map,
+filter, flatmap, etc. This abstractions are all too common for Clojure
+developers. Jackdaw makes those transformations look like regular Clojure code.
+
+However the Kafka Streams DSL does not support composable transformations the
+way Clojure can via transducers. Having said that, there is no reason we cant
+take advantage of the amazing properties of transducers in our Jackdaw
+applications. In my opinion the main benefit is being able to rely only on unit
+tests to test all of the business logic related to a topology. We will still
+have integration tests but we will rely much less on them when we use
+transducers.
+
+Jackdaw does not have support for transducers yet. I've seen a few in the wild.
+Here is a small namespace we'll use for this example.
+
+#+BEGIN_SRC clojure :tangle prod-app/src/prod_app/xform.clj :results silent
+(ns prod-app.xform
+  "Helper functions for working with transducers."
+  (:gen-class)
+  (:refer-clojure :exclude [transduce])
+  (:require [jackdaw.serdes :as js]
+            [jackdaw.streams :as j])
+  (:import org.apache.kafka.streams.kstream.Transformer
+           [org.apache.kafka.streams.state KeyValueStore Stores]
+           org.apache.kafka.streams.StreamsBuilder))
+
+
+(defn fake-kv-store
+  "Creates an instance of org.apache.kafka.streams.state.KeyValueStore
+  with overrides for get and put."
+  [init]
+  (let [store (volatile! init)]
+    (reify KeyValueStore
+      (get [_ k]
+        (clojure.core/get @store k))
+
+      (put [_ k v]
+        (vswap! store assoc k v)))))
+
+
+(defn kv-store-get-fn
+  "Takes an instance of KeyValueStore and a key k, and gets a value
+  from the store in a manner similar to `clojure.core/get`."
+  [^KeyValueStore store k]
+  (.get store k))
+
+
+(defn kv-store-swap-fn
+  "Takes an instance of KeyValueStore, a function f, and map m, and
+  updates the store in a manner similar to `clojure.core/swap!`."
+  [^KeyValueStore store f m]
+  (let [ks (keys (f {} m))
+        prev (reduce (fn [p k]
+                       (assoc p k (.get store k)))
+                     {}
+                     ks)
+        next (f prev m)]
+    (doall (map (fn [[k v]] (.put store k v)) next))
+    next))
+
+
+(defn add-state-store!
+  "Takes a builder and adds a state store."
+  [builder]
+  (doto ^StreamsBuilder (j/streams-builder* builder)
+    (.addStateStore (Stores/keyValueStoreBuilder
+                     (Stores/persistentKeyValueStore "state")
+                     (js/edn-serde)
+                     (js/edn-serde))))
+  builder)
+
+
+(defn transformer
+  "Takes a transducer and creates an instance of
+  org.apache.kafka.streams.kstream.Transformer with overrides for
+  init, transform, and close."
+  [xf]
+  (let [ctx (atom nil)]
+    (reify
+      Transformer
+      (init [_ context]
+        (reset! ctx context))
+      (transform [_ k v]
+        (let [^KeyValueStore store (.getStateStore @ctx "state")]
+          ;; TODO: how do we handle nil stuff here??
+          (doseq [[result-k result-v] (first (sequence (xf store) [[k v]]))]
+            (.forward @ctx result-k result-v))))
+      (close [_]))))
+
+
+(defn transduce
+  "Applies the transducer xf to each element of the kstream."
+  [kstream xf]
+  (j/transform kstream (fn [] (transformer xf)) ["state"]))
+#+END_SRC
+
+** Topology
+
+#+BEGIN_SRC clojure :tangle prod-app/src/prod_app/topology.clj :results silent
+(ns prod-app.topology
+  (:gen-class)
+  (:require [clj-http.client :as http]
+            [clj-uuid :as uuid]
+            [clojure.data.json :as json]
+            [clojure.spec.alpha :as s]
+            [clojure.walk :as walk]
+            [prod-app.log :as log]
+            [prod-app.xform :as jxf]
+            [prod-app.specs.reader-specs :as r-specs]
+            [prod-app.specs.writer-specs :as w-specs]
+            [integrant.core :as ig]
+            [jackdaw.streams :as j]))
+
+(defn loan-application
+  "returns sba loan application from external data"
+  [external-loan-application]
+  (let [external-opportunity-id (:external/opportunity-id external-loan-application)]
+    (assoc external-loan-application :metadata/loan-application-id
+           (uuid/v5 uuid/+namespace-url+ external-opportunity-id))))
+
+(defn update-loan-application
+  [state & {:keys [swap-fn registry]}]
+  (fn [rf]
+    (fn
+      ([] (rf))
+      ([result] (rf result))
+      ([result record]
+       (let [[_ v] record
+             id (uuid/v5 uuid/+namespace-url+ (:opportunity-id v))
+             metadata {:metadata/id id
+                       :metadata/correlation-id (uuid/v5 uuid/+namespace-url+ id)
+                       :metadata/published-timestamp (System/currentTimeMillis)
+                       :metadata/published-by "sba-connector"}
+             loan-app (loan-application v)
+             opportunity-id (:external/opportunity-id loan-app)]
+         (if (s/valid? ::w-specs/loan-application loan-app)
+           (let [next (as-> loan-app %
+                        (swap-fn state merge {opportunity-id %})
+                        (get % opportunity-id)
+                        (do
+                          (log/logger
+                           {:level :info
+                            :event "loan-application-attribute-validation-success"
+                            :metrics-registry registry
+                            :message
+                            "Loan application attributes satisfy writer spec"}
+                           v %)
+                          %)
+                        (if (s/valid? ::r-specs/loan-application %)
+                          (do
+                            (log/logger
+                             {:level :info
+                              :event "loan-application-complete"
+                              :metrics-registry registry
+                              :message
+                              "Loan application satisfies reader spec"}
+                             v %)
+                            (assoc %
+                                   :metadata/loan-application-is-complete true
+                                   :metadata/problems []))
+                          (let [problems (:clojure.spec.alpha/problems
+                                          (s/explain-data ::r-specs/loan-application %))]
+                            (log/logger
+                             {:level :info
+                              :event "loan-application-incomplete"
+                              :problems-count (count problems)
+                              :metrics-registry registry
+                              :message
+                              "Loan application does not satisfy reader spec"}
+                             v %)
+                            (assoc %
+                                   :metadata/loan-application-is-complete false
+                                   :metadata/problems (map str problems))))
+                        (merge % metadata)
+                        (vector opportunity-id %)
+                        (vector %))]
+             (rf result next))
+           (do
+             (log/logger
+              {:level :info
+               :event "loan-application-attribute-validation-failure"
+               :metrics-registry registry
+               :message
+               "Loan application attributes do not satisfy writer spec"}
+              v)
+             (rf result []))))))))
+
+(defn parse-sba-http-response
+  "Parse sba post request. Gracefully handles a non-json response."
+  [response]
+  (let [response-data (try (-> (:body response)
+                               json/read-str)
+                           (catch Exception e
+                             {"loan-number" false}))
+        loan-number (get response-data "loan-number")]
+    {:sba/status (if loan-number "success" "failure")
+     :sba/loan-number loan-number
+     :sba/result (json/write-str response-data)}))
+
+(defn send-loan-application-to-sba
+  [state & {:keys [deref-fn get-fn config registry]}]
+  (fn [rf]
+    (fn
+      ([] (rf))
+      ([result] (rf result))
+      ([result record]
+       (let [[_ v] record
+             opportunity-id (:opportunity-id v)
+             request-body (fn [loan-application] {:dummy-request loan-application})
+             loan-application (get-fn (deref-fn state) opportunity-id)
+             id (uuid/v5 uuid/+namespace-url+ (:trigger-id v))
+             metadata {:metadata/id id
+                       :metadata/published-timestamp (System/currentTimeMillis)
+                       :metadata/published-by "sba-connector"}]
+
+         (cond
+           ;; No loan applciation found in state store?
+           ;; log and continue
+           (nil? loan-application)
+           (do
+             (log/logger
+              {:level :warn
+               :event "unknown-loan-application"
+               :message "Could not find matching loan application for trigger, ignoring"}
+              v metadata {:sfdc-opportunity-id opportunity-id})
+             (rf result []))
+
+           (s/valid? ::r-specs/loan-application loan-application)
+           (let [url (get-in config [:sba :url])
+                 body (as-> loan-application %
+                        (merge % (-> config :sba-config :partner-info))
+                        (request-body %)
+                        (json/write-str %))
+                 _ (log/logger
+                    {:level :info
+                     :event "sba-http-request"
+                     :message "New HTTP request to SBA"
+                     :metrics-registry registry
+                     :body body
+                     :url url}
+                    v loan-application)
+                 response (http/post url {:headers {"content-type" "application/json"}
+                                          :body body})
+                 next (as-> response %
+                        (do (log/logger
+                             {:level :info
+                              :event "unparsed-sba-response"
+                              :body response
+                              :metrics-registry registry
+                              :message
+                              "unparsed sba API post response"}
+                             v loan-application metadata)
+                            %)
+                        (merge (parse-sba-http-response %)
+                               loan-application
+                               metadata)
+                        (do (log/logger
+                             {:level :info
+                              :event "sba-response-result"
+                              :metrics-registry registry
+                              :message
+                              "SBA response result"}
+                             v loan-application metadata)
+                            %)
+                        (vector opportunity-id %)
+                        (vector %))]
+             (rf result next))
+
+           :else
+           (let [_ (as-> {} %
+                     (merge  % {:sba/status "cancelled"
+                                :sba/loan-number nil
+                                :sba/result (str "Could not send HTTP request. "
+                                                 "The loan application does not satisfy the reader spec.")}
+                             loan-application
+                             metadata)
+                     (do
+                       (log/logger
+                        {:level :warn
+                         :event "request-cancelled-loan-application-incomplete"
+                         :metrics-registry registry
+                         :message (:sba/result %)}
+                        %)
+                       %)
+                     (vector opportunity-id %)
+                     (vector %))]
+             (rf result []))))))))
+
+(defn valid-sfdc-loan-application? [[_ sfdc-loan]]
+  (s/valid? ::r-specs/sfdc-loan-application sfdc-loan))
+
+(defn topology-builder
+  [{:keys [sfdc-loan-application
+           sfdc-pre-underwriting-completed
+           sba-loan-application-updated
+           sba-result-available]}
+   xforms
+   registry]
+  (fn [builder]
+    (jxf/add-state-store! builder)
+    (-> (j/kstream builder sfdc-loan-application)
+        (j/peek (fn [[k v]]
+                  (log/logger
+                   {:level :info
+                    :sfdc-opportunity-id k
+                    :event "sfdc-loan-application"
+                    :metrics-registry registry
+                    :message
+                    "New SFDC loan application snapshot"}
+                   v sfdc-loan-application)))
+        (jxf/transduce (::update-loan-application xforms))
+        ;; un-namespaces data from state store
+        (j/map-values (fn [v]
+                        (walk/postwalk #(if (keyword? %) (keyword (name %)) %) v)))
+        (j/peek (fn [[k v]]
+                  (log/logger
+                   {:level :info
+                    :sfdc-opportunity-id k
+                    :event "sba-loan-application-updated-event"
+                    :metrics-registry registry
+                    :message
+                    "SBA loan application updated "}
+                   v sba-loan-application-updated)))
+        (j/to sba-loan-application-updated))
+
+    (-> (j/kstream builder sfdc-pre-underwriting-completed)
+        (j/peek (fn [[k v]]
+                  (log/logger
+                   {:level :info
+                    :sfdc-opportunity-id k
+                    :event "pre-underwriting-completed-event"
+                    :metrics-registry registry
+                    :message
+                    "New SFDC pre-underwriting completed event"}
+                   v sfdc-pre-underwriting-completed)))
+        (j/filter (fn [[k v]]
+                    (if (nil? k)
+                      (log/logger
+                       {:level :warn
+                        :event "pre-underwriting-completed-event-nil-key"
+                        :metrics-registry registry
+                        :message
+                        "Skip sfdc-pre-underwriting-completed event, key was nil"}
+                       v sfdc-pre-underwriting-completed)
+                      true)))
+        (jxf/transduce (::send-loan-application-to-sba xforms))
+        ;; un-namespaces data from state store
+        (j/map-values (fn [v] (walk/postwalk #(if (keyword? %) (keyword (name %)) %) v)))
+        (j/peek (fn [[k v]]
+                  (log/logger
+                   {:level :info
+                    :sfdc-opportunity-id k
+                    :event "sba-result-available-event"
+                    :metrics-registry registry
+                    :message "SBA result available"}
+                   v sba-result-available)))
+        (j/to sba-result-available))
+    builder))
+
+(defmethod ig/init-key ::app [_ {:keys [config topology] :as opts}]
+  (let [streams-app (j/kafka-streams topology (:streams-config config))]
+    (log/info "Started sba-connector streams app")
+    (j/start streams-app)
+    (assoc opts :streams-app streams-app)))
+#+END_SRC
+
+** Running and Packaging
