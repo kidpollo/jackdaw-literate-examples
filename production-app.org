@@ -28,7 +28,7 @@ mkdir -p prod-app/.circleci
 Lets start with our deps file. We will include everything needed for building a
 production ready Jackdaw app. I'll go over the highlights after the snippet.
 
-#+begin_src clojure :tangle prod-app/deps.edn
+#+begin_src clojure :tangle prod-app/deps.edn :eval no
 {:paths ["src" "resources"]
 
  :deps {org.clojure/clojure {:mvn/version "1.10.1"}
@@ -91,10 +91,6 @@ production ready Jackdaw app. I'll go over the highlights after the snippet.
  :mvn/repos
  {"confluent" {:url "https://packages.confluent.io/maven/"}}}
 #+end_src
-
-#+RESULTS:
-: class clojure.lang.Compiler$CompilerExceptionclass clojure.lang.Compiler$CompilerExceptionSyntax error compiling at (*cider-repl code/jackdaw-literate-examples:localhost:45115(clj)*:0:0).
-: No such namespace: cambium
 
 *** Core app.
   
@@ -291,7 +287,7 @@ digraph Topology {
 #+end_src
 
 #+RESULTS:
-: #:clojure.spec.alpha{:problems [{:path [], :pred prod-app.specs.reader-specs/valid-requested-amount?, :val {:employee-count "2", :primary-phone "1-800-EMPIRE", :city-name "bar", :state-code "AZ", :business-name "foo", :tax-id "1", :loan-application-id #uuid "e844e050-926f-4972-8221-6b9f667d5f54", :zip-code "666", :street-name "Abbey Road", :requested-amount "99"}, :via [:prod-app.specs.reader-specs/loan-application], :in []}], :spec :prod-app.specs.reader-specs/loan-application, :value {:employee-count "2", :primary-phone "1-800-EMPIRE", :city-name "bar", :state-code "AZ", :business-name "foo", :tax-id "1", :loan-application-id #uuid "e844e050-926f-4972-8221-6b9f667d5f54", :zip-code "666", :street-name "Abbey Road", :requested-amount "99"}}
+: #:clojure.spec.alpha{:problems ({:path [], :pred (clojure.core/fn [%] (clojure.core/contains? % :opportunity-id)), :val {:employee-count "2", :primary-phone "1-800-EMPIRE", :city-name "bar", :state-code "AZ", :business-name "foo", :tax-id "1", :loan-application-id #uuid "8a0c569a-237c-4f8d-bc11-80becd6493b1", :zip-code "666", :street-name "Abbey Road", :requested-amount "100"}, :via [:prod-app.specs.reader-specs/loan-application], :in []} {:path [:tax-id], :pred :clojure.spec.alpha/unknown, :val "1", :via [:prod-app.specs.reader-specs/loan-application :company/tax-id], :in [:tax-id]}), :spec :prod-app.specs.reader-specs/loan-application, :value {:employee-count "2", :primary-phone "1-800-EMPIRE", :city-name "bar", :state-code "AZ", :business-name "foo", :tax-id "1", :loan-application-id #uuid "8a0c569a-237c-4f8d-bc11-80becd6493b1", :zip-code "666", :street-name "Abbey Road", :requested-amount "100"}}
 
 #+begin_src clojure :tangle prod-app/dev/scratch.clj :results value :exports both
 (s/valid? ::loan-application
@@ -308,7 +304,7 @@ digraph Topology {
 #+end_src
 
 #+RESULTS:
-: true
+: false
 
   Writer specs are the specs we use to write to Kafka topics. This specs are
   usually less stringent as they only require the minimum data required for us
@@ -478,7 +474,7 @@ diagnose and track the health of our application.
 
 We also need to define our logback configurations for test and production.
 
-#+BEGIN_SRC xml :tangle prod-app/test/resources/logback-test.xml 
+#+BEGIN_SRC xml :tangle prod-app/test/resources/logback-test.xml :eval no 
 <configuration>
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
@@ -512,7 +508,7 @@ We also need to define our logback configurations for test and production.
 </configuration>
 #+END_SRC
 
-#+BEGIN_SRC xml :tangle prod-app/resources/logback.xml 
+#+BEGIN_SRC xml :tangle prod-app/resources/logback.xml :eval no 
 <configuration>
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
@@ -974,10 +970,6 @@ implementation we will use for this project.
 #+RESULTS:
 : 
 : Testing prod-app.topology-test
-: {"timestamp":"2020-06-18T00:12:29.028Z","level":"INFO","thread":"nREPL-session-ff6b99dc-8d51-425b-852e-d161a59da182","loan-application-id":"072d8eef-eb15-5bf8-a4b4-a51df0162268","ns":"prod-app.log","line":53,"opportunity-id":"p3U380","column":17,"event":"loan-application-attribute-validation-success","logger":"prod-app.log","message":"Loan application attributes satisfy writer spec","context":"default"}
-: {"timestamp":"2020-06-18T00:12:29.029Z","level":"INFO","thread":"nREPL-session-ff6b99dc-8d51-425b-852e-d161a59da182","loan-application-id":"072d8eef-eb15-5bf8-a4b4-a51df0162268","ns":"prod-app.log","line":53,"opportunity-id":"p3U380","column":17,"event":"loan-application-complete","logger":"prod-app.log","message":"Loan application satisfies reader spec","context":"default"}
-: {"timestamp":"2020-06-18T00:12:29.033Z","level":"INFO","thread":"nREPL-session-ff6b99dc-8d51-425b-852e-d161a59da182","loan-application-id":"b1b29df4-5b67-5461-b3b9-e266420f5e9f","sba-loan-number":"Kk0mIPk3l8U5lTQ5P","ns":"prod-app.log","line":53,"opportunity-id":"u1UDIrWWuW7U9dV9uWWbx94J9r41h","column":17,"event":"loan-application-attribute-validation-success","logger":"prod-app.log","message":"Loan application attributes satisfy writer spec","context":"default"}
-: {"timestamp":"2020-06-18T00:12:29.034Z","level":"INFO","thread":"nREPL-session-ff6b99dc-8d51-425b-852e-d161a59da182","loan-application-id":"b1b29df4-5b67-5461-b3b9-e266420f5e9f","sba-loan-number":"Kk0mIPk3l8U5lTQ5P","ns":"prod-app.log","line":53,"opportunity-id":"u1UDIrWWuW7U9dV9uWWbx94J9r41h","column":17,"problems-count":1,"event":"loan-application-incomplete","logger":"prod-app.log","message":"Loan application does not satisfy reader spec","context":"default"}
 : 
 : Ran 1 tests containing 9 assertions.
 : 0 failures, 0 errors.
@@ -993,14 +985,14 @@ tail -n 31 log/sba-connector-test.log
 #+RESULTS:
 #+begin_EXPORT json
 {
-  "timestamp" : "2020-06-17T23:58:38.179Z",
+  "timestamp" : "2020-06-18T22:29:51.673Z",
   "level" : "INFO",
-  "thread" : "main",
-  "loan-application-id" : "9cd700c1-3e04-55c8-9afc-755f98c08481",
-  "sba-loan-number" : "LiebyccDkpsG3y0y9uTwUS7Ym",
+  "thread" : "nREPL-session-92ad42cc-9e1f-4785-80c6-cdbf644d323a",
+  "loan-application-id" : "972d6828-d9eb-561f-9c72-5cf457636669",
+  "sba-loan-number" : "RGvi9jKVve",
   "ns" : "prod-app.log",
   "line" : 53,
-  "opportunity-id" : "KIv4R9A",
+  "opportunity-id" : "45ikm1PGkT4ai1f9Z6e",
   "column" : 17,
   "event" : "loan-application-attribute-validation-success",
   "logger" : "prod-app.log",
@@ -1008,14 +1000,14 @@ tail -n 31 log/sba-connector-test.log
   "context" : "default"
 }
 {
-  "timestamp" : "2020-06-17T23:58:38.181Z",
+  "timestamp" : "2020-06-18T22:29:51.674Z",
   "level" : "INFO",
-  "thread" : "main",
-  "loan-application-id" : "9cd700c1-3e04-55c8-9afc-755f98c08481",
-  "sba-loan-number" : "LiebyccDkpsG3y0y9uTwUS7Ym",
+  "thread" : "nREPL-session-92ad42cc-9e1f-4785-80c6-cdbf644d323a",
+  "loan-application-id" : "972d6828-d9eb-561f-9c72-5cf457636669",
+  "sba-loan-number" : "RGvi9jKVve",
   "ns" : "prod-app.log",
   "line" : 53,
-  "opportunity-id" : "KIv4R9A",
+  "opportunity-id" : "45ikm1PGkT4ai1f9Z6e",
   "column" : 17,
   "problems-count" : 1,
   "event" : "loan-application-incomplete",
@@ -1569,7 +1561,7 @@ Testing prod-app.integration.topology-test
 |-------------------------------+-----------|
 | :sba-loan-application-updated |         1 |
 |         :sba-result-available |         1 |
-writing results to './test-results/journal-1592457431371'
+writing results to './test-results/journal-1592519394812'
 
 Ran 1 tests containing 5 assertions.
 0 failures, 0 errors.

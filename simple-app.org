@@ -23,7 +23,7 @@ To save a snippet like this on a path we set the ~:tangle~ header argument and
 when we run the emacs command ~org-babel-tangle~ our file will be saved to the
 path specified.
 
-#+begin_src clojure :tangle simple-app/deps.edn
+#+begin_src clojure :tangle simple-app/deps.edn :results silent :eval no
 {:deps
  {org.clojure/clojure {:mvn/version "1.10.1"}}
  :aliases
@@ -50,18 +50,18 @@ command. A quirk of doing this is that the following command is blocking and Ema
 seems to freeze on waiting for output. You can ~C-g~ to unfreeze the editor.
 Notice we set ~:session~ so that our future zsh commands dont get blocked.
 
-#+BEGIN_SRC zsh :dir simple-app :results silent :session simple-app
+#+BEGIN_SRC zsh :dir simple-app :results silent :session simple-app :eval query
 clojure -R:test -C:test -Sdeps '{:deps {nrepl {:mvn/version "0.7.0"} cider/cider-nrepl {:mvn/version "0.25.2"}}}' -m nrepl.cmdline --middleware '["cider.nrepl/cider-middleware"]'
 #+END_SRC
 
 Lets fetch that nrepl port.
 
-#+BEGIN_SRC zsh :dir simple-app
+#+BEGIN_SRC zsh :dir simple-app :eval query
 cat .nrepl-port
 #+END_SRC
 
 #+RESULTS:
-: 45979
+: 44067
 
 Now we run ~cider-connect-clj~ and we can start working on our project.
 
@@ -106,23 +106,12 @@ Ran 1 tests containing 1 assertions.
 
 Ideally, we should really try to evaluate code already directly on our REPL.
 
-#+begin_src clojure :ns clojure.test :tangle simple-app/dev/scratch.clj :results output :exports both
+#+begin_src clojure :ns clojure.test :tangle simple-app/dev/scratch.clj :results value :exports both
 (run-tests 'simple-app.core-test)
 #+end_src
 
 #+RESULTS:
-#+begin_example
-
-Testing simple-app.core-test
-
-FAIL in (a-test) (NO_SOURCE_FILE:6)
-FIXME, I fail.
-expected: (= 0 1)
-  actual: (not (= 0 1))
-
-Ran 1 tests containing 1 assertions.
-1 failures, 0 errors.
-#+end_example
+: nil{:test 1, :pass 0, :fail 1, :error 0, :type :summary}
 
 Notice that we set ~:results~ to output. This tells Emacs to get the value from
 standard out which is way more informative than the return value of the
@@ -160,11 +149,10 @@ The default value for results is "value". Wich plainly means the result of the
 evaluation will be printed in the documet. There is an anoying quirk (or bug?)
 that with clojure evaluation where the result is printed only from the first
 form. I dont mind this so much as the idea of this approach is to have
-documentation and evaluation step by step. I hope I can carve some time in the
-future to figure this out.
+documentation and evaluation step by step.
 
 #+begin_src clojure :tangle simple-app/dev/scratch.clj :results value :exports both
-(str "foo")(str "bar")(str "baz")
+(str "foo")(+ 1)(prn "baz")
 #+end_src
 
 #+RESULTS:
@@ -221,3 +209,16 @@ and play around on your own.
 One last tip I want to share is that you might want to edit clojure blocks in
 clojure mode. To achieve this there is a nifty ~org-edit-special~ command. This
 command will put your snippet in an Emacs pop-up in clojure mode.
+
+#+begin_src clojure :tangle simple-app/src/simple_app/core.clj :results silent
+(defn -main [target]
+  (hello target))
+#+end_src
+
+Run ~org-babel-tangle~ and ~org-babel-execute-buffer~ and profit.
+
+#+BEGIN_SRC zsh :dir simple-app
+clojure -m simple-app.core "Clojure North"
+#+END_SRC
+
+There you have it a fully running Clojure project in one file.
