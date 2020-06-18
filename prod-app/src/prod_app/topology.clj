@@ -15,8 +15,8 @@
 (defn loan-application
   "returns sba loan application from external data"
   [external-loan-application]
-  (let [external-opportunity-id (:external/opportunity-id external-loan-application)]
-    (assoc external-loan-application :metadata/loan-application-id
+  (let [external-opportunity-id (:opportunity-id external-loan-application)]
+    (assoc external-loan-application :loan-application-id
            (uuid/v5 uuid/+namespace-url+ external-opportunity-id))))
 
 (defn update-loan-application
@@ -28,12 +28,11 @@
       ([result record]
        (let [[_ v] record
              id (uuid/v5 uuid/+namespace-url+ (:opportunity-id v))
-             metadata {:metadata/id id
-                       :metadata/correlation-id (uuid/v5 uuid/+namespace-url+ id)
-                       :metadata/published-timestamp (System/currentTimeMillis)
-                       :metadata/published-by "sba-connector"}
+             metadata {:id id
+                       :published-timestamp (System/currentTimeMillis)
+                       :published-by "sba-connector"}
              loan-app (loan-application v)
-             opportunity-id (:external/opportunity-id loan-app)]
+             opportunity-id (:opportunity-id loan-app)]
          (if (s/valid? ::w-specs/loan-application loan-app)
            (let [next (as-> loan-app %
                         (swap-fn state merge {opportunity-id %})
@@ -57,8 +56,8 @@
                               "Loan application satisfies reader spec"}
                              v %)
                             (assoc %
-                                   :metadata/loan-application-is-complete true
-                                   :metadata/problems []))
+                                   :loan-application-is-complete true
+                                   :problems []))
                           (let [problems (:clojure.spec.alpha/problems
                                           (s/explain-data ::r-specs/loan-application %))]
                             (log/logger
@@ -70,8 +69,8 @@
                               "Loan application does not satisfy reader spec"}
                              v %)
                             (assoc %
-                                   :metadata/loan-application-is-complete false
-                                   :metadata/problems (map str problems))))
+                                   :loan-application-is-complete false
+                                   :problems (map str problems))))
                         (merge % metadata)
                         (vector opportunity-id %)
                         (vector %))]
@@ -94,9 +93,9 @@
                            (catch Exception e
                              {"loan-number" false}))
         loan-number (get response-data "loan-number")]
-    {:sba/status (if loan-number "success" "failure")
-     :sba/loan-number loan-number
-     :sba/result (json/write-str response-data)}))
+    {:status (if loan-number "success" "failure")
+     :loan-number loan-number
+     :result (json/write-str response-data)}))
 
 (defn send-loan-application-to-sba
   [state & {:keys [deref-fn get-fn config registry]}]
@@ -107,31 +106,27 @@
       ([result record]
        (let [[_ v] record
              opportunity-id (:opportunity-id v)
-             request-body (fn [loan-application] {:dummy-request loan-application})
+             request-body {:dummy-request loan-application}
              loan-application (get-fn (deref-fn state) opportunity-id)
+             loan-application (into {} (remove (comp nil? val) loan-application))
              id (uuid/v5 uuid/+namespace-url+ (:trigger-id v))
-             metadata {:metadata/id id
-                       :metadata/published-timestamp (System/currentTimeMillis)
-                       :metadata/published-by "sba-connector"}]
+             metadata {:id id
+                       :published-timestamp (System/currentTimeMillis)
+                       :published-by "sba-connector"}]
 
          (cond
-
-
            (nil? loan-application)
            (do
              (log/logger
               {:level :warn
                :event "unknown-loan-application"
                :message "Could not find matching loan application for trigger, ignoring"}
-              v metadata {:sfdc-opportunity-id opportunity-id})
+              v metadata {:opportunity-id opportunity-id})
              (rf result []))
 
            (s/valid? ::r-specs/loan-application loan-application)
            (let [url (get-in config [:sba :url])
-                 body (as-> loan-application %
-                        (merge % (-> config :sba-config :partner-info))
-                        (request-body %)
-                        (json/write-str %))
+                 body request-body
                  _ (log/logger
                     {:level :info
                      :event "sba-http-request"
@@ -144,12 +139,12 @@
                                           :body body})
                  next (as-> response %
                         (do (log/logger
-                             {:level :info
+                             {:level :debug
                               :event "unparsed-sba-response"
                               :body response
                               :metrics-registry registry
                               :message
-                              "unparsed sba API post response"}
+                              "Unparsed SBA API post response"}
                              v loan-application metadata)
                             %)
                         (merge (parse-sba-http-response %)
@@ -187,36 +182,30 @@
                      (vector %))]
              (rf result []))))))))
 
-(defn valid-sfdc-loan-application? [[_ sfdc-loan]]
-  (s/valid? ::r-specs/sfdc-loan-application sfdc-loan))
-
 (defn topology-builder
-  [{:keys [sfdc-loan-application
-           sfdc-pre-underwriting-completed
+  [{:keys [external-loan-application
+           external-trigger
            sba-loan-application-updated
            sba-result-available]}
    xforms
    registry]
   (fn [builder]
     (jxf/add-state-store! builder)
-    (-> (j/kstream builder sfdc-loan-application)
+    (-> (j/kstream builder external-loan-application)
         (j/peek (fn [[k v]]
                   (log/logger
                    {:level :info
-                    :sfdc-opportunity-id k
-                    :event "sfdc-loan-application"
+                    :opportunity-id k
+                    :event "new-external-loan-application"
                     :metrics-registry registry
                     :message
-                    "New SFDC loan application snapshot"}
-                   v sfdc-loan-application)))
+                    "New external loan application snapshot"}
+                   v external-loan-application)))
         (jxf/transduce (::update-loan-application xforms))
-
-        (j/map-values (fn [v]
-                        (walk/postwalk #(if (keyword? %) (keyword (name %)) %) v)))
         (j/peek (fn [[k v]]
                   (log/logger
                    {:level :info
-                    :sfdc-opportunity-id k
+                    :opportunity-id k
                     :event "sba-loan-application-updated-event"
                     :metrics-registry registry
                     :message
@@ -224,33 +213,21 @@
                    v sba-loan-application-updated)))
         (j/to sba-loan-application-updated))
 
-    (-> (j/kstream builder sfdc-pre-underwriting-completed)
+    (-> (j/kstream builder external-trigger)
         (j/peek (fn [[k v]]
                   (log/logger
                    {:level :info
-                    :sfdc-opportunity-id k
-                    :event "pre-underwriting-completed-event"
+                    :opportunity-id k
+                    :event "external-trigger-event"
                     :metrics-registry registry
                     :message
-                    "New SFDC pre-underwriting completed event"}
-                   v sfdc-pre-underwriting-completed)))
-        (j/filter (fn [[k v]]
-                    (if (nil? k)
-                      (log/logger
-                       {:level :warn
-                        :event "pre-underwriting-completed-event-nil-key"
-                        :metrics-registry registry
-                        :message
-                        "Skip sfdc-pre-underwriting-completed event, key was nil"}
-                       v sfdc-pre-underwriting-completed)
-                      true)))
+                    "New external trigger"}
+                   v external-trigger)))
         (jxf/transduce (::send-loan-application-to-sba xforms))
-
-        (j/map-values (fn [v] (walk/postwalk #(if (keyword? %) (keyword (name %)) %) v)))
         (j/peek (fn [[k v]]
                   (log/logger
                    {:level :info
-                    :sfdc-opportunity-id k
+                    :opportunity-id k
                     :event "sba-result-available-event"
                     :metrics-registry registry
                     :message "SBA result available"}

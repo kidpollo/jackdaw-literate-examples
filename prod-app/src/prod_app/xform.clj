@@ -53,7 +53,6 @@
                      (js/edn-serde))))
   builder)
 
-
 (defn transformer
   "Takes a transducer and creates an instance of
   org.apache.kafka.streams.kstream.Transformer with overrides for
@@ -66,7 +65,6 @@
         (reset! ctx context))
       (transform [_ k v]
         (let [^KeyValueStore store (.getStateStore @ctx "state")]
-
           (doseq [[result-k result-v] (first (sequence (xf store) [[k v]]))]
             (.forward @ctx result-k result-v))))
       (close [_]))))

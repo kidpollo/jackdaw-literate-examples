@@ -10,7 +10,6 @@
           :opt-un [:writer-specs.loan-application/employee-count
                    :writer-specs.loan-application/requested-amount
                    :writer-specs.loan-application/sba-loan-number
-                   
                    :writer-specs.company/tax-id
                    :writer-specs.company/business-name
                    :writer-specs.company/city-name
@@ -33,13 +32,11 @@
 (s/def :writer-specs.metadata/exteral-opportunity-id :external/opportunity-id)
 
 (s/def :writer-specs.metadata/id uuid?)
-(s/def :writer-specs.metadata/correlation-id uuid?)
 (s/def :writer-specs.metadata/published-timestamp int?)
 (s/def :writer-specs.metadata/published-by string?)
 
 (s/def ::metadata
   (s/keys :req-un [:writer-specs.metadata/id
-                   :writer-specs.metadata/correlation-id
                    :writer-specs.metadata/published-timestamp
                    :writer-specs.metadata/published-by]))
 
@@ -51,9 +48,9 @@
 
 (s/def ::sba-loan-application-updated-event
   (s/merge ::loan-application
-           (s/keys :req [:writer-specs.metadata/loan-application-is-complete])
+           (s/keys :req-un [:writer-specs.metadata/loan-application-is-complete])
            ::metadata
-           (s/keys :req [:writer-specs.metadata/problems])))
+           (s/keys :req-un [:writer-specs.metadata/problems])))
 
 (s/def ::sba-result-available-event
   (s/merge ::result

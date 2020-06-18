@@ -9,6 +9,12 @@
 
 (flat/set-decoder! codec/destringify-val)
 
+(defmacro debug
+  "structured log at the INFO level"
+  {:arglists '([msg] [mdc msg] [mdc throwable msg])}
+  [& args]
+  `(cambium-core/debug ~@args))
+
 (defmacro info
   "structured log at the INFO level"
   {:arglists '([msg] [mdc msg] [mdc throwable msg])}

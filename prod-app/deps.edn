@@ -42,10 +42,11 @@
                         :sha "b48d4e7000586529f81c1e29069b503b57259514"}}
           :main-opts ["-m" "clj-check.check"]}
 
-  :test {:extra-paths ["test" "test/resources"]
+  :test {:extra-paths ["test" "test/resources" "test/integration"]
          :extra-deps {com.cognitect/test-runner
                       {:git/url "https://github.com/cognitect-labs/test-runner.git"
                        :sha "209b64504cb3bd3b99ecfec7937b358a879f55c1"}
+                      org.clojure/test.check {:mvn/version "0.9.0"}
                       org.apache.kafka/kafka-streams-test-utils {:mvn/version "2.3.1"}
                       org.apache.kafka/kafka_2.11 {:mvn/version "2.3.1"
                                                    :exclusions [org.slf4j/slf4j-log4j12]}}

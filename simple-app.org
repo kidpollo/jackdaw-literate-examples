@@ -51,7 +51,7 @@ seems to freeze on waiting for output. You can ~C-g~ to unfreeze the editor.
 Notice we set ~:session~ so that our future zsh commands dont get blocked.
 
 #+BEGIN_SRC zsh :dir simple-app :results silent :session simple-app
-clojure -R:test -Sdeps '{:deps {nrepl {:mvn/version "0.7.0"} cider/cider-nrepl {:mvn/version "0.25.2"}}}' -m nrepl.cmdline --middleware '["cider.nrepl/cider-middleware"]'
+clojure -R:test -C:test -Sdeps '{:deps {nrepl {:mvn/version "0.7.0"} cider/cider-nrepl {:mvn/version "0.25.2"}}}' -m nrepl.cmdline --middleware '["cider.nrepl/cider-middleware"]'
 #+END_SRC
 
 Lets fetch that nrepl port.

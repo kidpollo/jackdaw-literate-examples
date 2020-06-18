@@ -1,3 +1,5 @@
 .cpcache
 .nrepl-port
 .m2
+test-results
+log

@@ -1,11 +1,6 @@
 (ns clojure.test)
-(run-tests 'simple-app.core-test)
+(run-tests 'prod-app.topology-test)
 
-(ns simple-app.core)
-(hello "World")
-
-(str "foo") (str "bar") (str "baz")
-
-(str "Hello World")
-
-(str "Hello World")
+(require '[prod-app.integration.fixtures]
+         '[prod-app.integration.journal]
+         '[prod-app.integration.runner])
