@@ -162,7 +162,7 @@ production ready Jackdaw app. I'll go over the highlights after the snippet.
 
 #+BEGIN_SRC dot :file prod-app/topology.png :cmdline -Kdot -Tpng :exports results
 digraph Topology {
-  bgcolor="transparent";
+  bgcolor="white";
   external_loan_application [shape=box];
   external_loan_application -> update_sba_loan;
   sba_loan_application_updated [shape=box];
@@ -287,7 +287,7 @@ digraph Topology {
 #+end_src
 
 #+RESULTS:
-: #:clojure.spec.alpha{:problems ({:path [], :pred (clojure.core/fn [%] (clojure.core/contains? % :opportunity-id)), :val {:employee-count "2", :primary-phone "1-800-EMPIRE", :city-name "bar", :state-code "AZ", :business-name "foo", :tax-id "1", :loan-application-id #uuid "8a0c569a-237c-4f8d-bc11-80becd6493b1", :zip-code "666", :street-name "Abbey Road", :requested-amount "100"}, :via [:prod-app.specs.reader-specs/loan-application], :in []} {:path [:tax-id], :pred :clojure.spec.alpha/unknown, :val "1", :via [:prod-app.specs.reader-specs/loan-application :company/tax-id], :in [:tax-id]}), :spec :prod-app.specs.reader-specs/loan-application, :value {:employee-count "2", :primary-phone "1-800-EMPIRE", :city-name "bar", :state-code "AZ", :business-name "foo", :tax-id "1", :loan-application-id #uuid "8a0c569a-237c-4f8d-bc11-80becd6493b1", :zip-code "666", :street-name "Abbey Road", :requested-amount "100"}}
+: #:clojure.spec.alpha{:problems ({:path [], :pred (clojure.core/fn [%] (clojure.core/contains? % :opportunity-id)), :val {:employee-count "2", :primary-phone "1-800-EMPIRE", :city-name "bar", :state-code "AZ", :business-name "foo", :tax-id "1", :loan-application-id #uuid "adf8a286-0cad-4d3f-8cec-3bde2d59737f", :zip-code "666", :street-name "Abbey Road", :requested-amount "100"}, :via [:prod-app.specs.reader-specs/loan-application], :in []} {:path [:tax-id], :pred :clojure.spec.alpha/unknown, :val "1", :via [:prod-app.specs.reader-specs/loan-application :company/tax-id], :in [:tax-id]}), :spec :prod-app.specs.reader-specs/loan-application, :value {:employee-count "2", :primary-phone "1-800-EMPIRE", :city-name "bar", :state-code "AZ", :business-name "foo", :tax-id "1", :loan-application-id #uuid "adf8a286-0cad-4d3f-8cec-3bde2d59737f", :zip-code "666", :street-name "Abbey Road", :requested-amount "100"}}
 
 #+begin_src clojure :tangle prod-app/dev/scratch.clj :results value :exports both
 (s/valid? ::loan-application
@@ -985,14 +985,14 @@ tail -n 31 log/sba-connector-test.log
 #+RESULTS:
 #+begin_EXPORT json
 {
-  "timestamp" : "2020-06-18T22:29:51.673Z",
+  "timestamp" : "2020-06-19T01:14:26.492Z",
   "level" : "INFO",
   "thread" : "nREPL-session-92ad42cc-9e1f-4785-80c6-cdbf644d323a",
-  "loan-application-id" : "972d6828-d9eb-561f-9c72-5cf457636669",
-  "sba-loan-number" : "RGvi9jKVve",
+  "loan-application-id" : "c5919d92-2de1-521e-900d-272f46a5d24e",
+  "sba-loan-number" : "E7pmtzznc01ABuHds",
   "ns" : "prod-app.log",
   "line" : 53,
-  "opportunity-id" : "45ikm1PGkT4ai1f9Z6e",
+  "opportunity-id" : "G0Yv3CC86cmjPrI85UobrjkM",
   "column" : 17,
   "event" : "loan-application-attribute-validation-success",
   "logger" : "prod-app.log",
@@ -1000,14 +1000,14 @@ tail -n 31 log/sba-connector-test.log
   "context" : "default"
 }
 {
-  "timestamp" : "2020-06-18T22:29:51.674Z",
+  "timestamp" : "2020-06-19T01:14:26.493Z",
   "level" : "INFO",
   "thread" : "nREPL-session-92ad42cc-9e1f-4785-80c6-cdbf644d323a",
-  "loan-application-id" : "972d6828-d9eb-561f-9c72-5cf457636669",
-  "sba-loan-number" : "RGvi9jKVve",
+  "loan-application-id" : "c5919d92-2de1-521e-900d-272f46a5d24e",
+  "sba-loan-number" : "E7pmtzznc01ABuHds",
   "ns" : "prod-app.log",
   "line" : 53,
-  "opportunity-id" : "45ikm1PGkT4ai1f9Z6e",
+  "opportunity-id" : "G0Yv3CC86cmjPrI85UobrjkM",
   "column" : 17,
   "problems-count" : 1,
   "event" : "loan-application-incomplete",
@@ -1561,7 +1561,7 @@ Testing prod-app.integration.topology-test
 |-------------------------------+-----------|
 | :sba-loan-application-updated |         1 |
 |         :sba-result-available |         1 |
-writing results to './test-results/journal-1592519394812'
+writing results to './test-results/journal-1592529916911'
 
 Ran 1 tests containing 5 assertions.
 0 failures, 0 errors.
