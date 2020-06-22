@@ -12,7 +12,7 @@
   
 *** Prod App
 
-  Full example of building a "[[file:prod-app.org][Prod Like]]" Jackdaw and Kafka Streams application
+  Full example of building a "[[file:production-app.org][Prod Like]]" Jackdaw and Kafka Streams application
   using org-mode. This example relies on Docker to run.
 
 *** Streams Basic

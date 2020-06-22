@@ -271,7 +271,7 @@ digraph Topology {
 #+end_src
 
 #+RESULTS:
-: #:clojure.spec.alpha{:problems ({:path [:tax-id], :pred :clojure.spec.alpha/unknown, :val "foo", :via [:prod-app.specs.reader-specs/loan-application :loan-application/tax-id], :in [:tax-id]}), :spec :prod-app.specs.reader-specs/loan-application, :value {:loan-application-id #uuid "503d7ae5-aa4c-4074-a854-50493c7ee317", :opportunity-id "external-id-for-a-loan", :requested-amount "100", :tax-id "foo"}}
+: #:clojure.spec.alpha{:problems ({:path [:tax-id], :pred :clojure.spec.alpha/unknown, :val "foo", :via [:prod-app.specs.reader-specs/loan-application :loan-application/tax-id], :in [:tax-id]}), :spec :prod-app.specs.reader-specs/loan-application, :value {:loan-application-id #uuid "ed28693c-7d4f-44a2-ae43-05dbb1c47914", :opportunity-id "external-id-for-a-loan", :requested-amount "100", :tax-id "foo"}}
 
   A valid loan application entry in our state store.
 
@@ -967,35 +967,35 @@ tail -n 31 log/sba-connector-test.log
 
 #+RESULTS:
 #+begin_EXPORT json
+{
+  "timestamp" : "2020-06-22T00:56:23.747Z",
+  "level" : "INFO",
+  "thread" : "nREPL-session-38f9c839-1581-463f-b83a-d63e61fec0ec",
+  "loan-application-id" : "8857b052-3bbc-5f35-9c41-bb5c88820241",
+  "ns" : "prod-app.log",
   "line" : 53,
-  "opportunity-id" : "Y8vcTAKn2Hx5K3",
-  "published-timestamp" : 1592784425178,
+  "opportunity-id" : "AV",
   "column" : 17,
-  "requested-amount" : "1",
-  "id" : "d5d779e2-8edf-584b-8243-1a587221b902",
-  "event" : "sba-response-result",
-  "tax-id" : "6126019115",
+  "requested-amount" : "6VuGN2NUL5rQ9i5trF",
+  "event" : "loan-application-attribute-validation-success",
   "logger" : "prod-app.log",
-  "message" : "SBA response result",
+  "message" : "Loan application attributes satisfy writer spec",
   "context" : "default"
 }
 {
-  "timestamp" : "2020-06-22T00:07:05.925Z",
+  "timestamp" : "2020-06-22T00:56:23.748Z",
   "level" : "INFO",
-  "thread" : "prod-app-StreamThread-5",
-  "loan-application-id" : "548a46b0-fa61-58e8-9dbf-52f60e3c0280",
-  "published-by" : "sba-connector",
+  "thread" : "nREPL-session-38f9c839-1581-463f-b83a-d63e61fec0ec",
+  "loan-application-id" : "8857b052-3bbc-5f35-9c41-bb5c88820241",
   "ns" : "prod-app.log",
   "line" : 53,
-  "opportunity-id" : "Y8vcTAKn2Hx5K3",
-  "published-timestamp" : 1592784425178,
+  "opportunity-id" : "AV",
   "column" : 17,
-  "requested-amount" : "1",
-  "id" : "d5d779e2-8edf-584b-8243-1a587221b902",
-  "event" : "sba-result-available-event",
-  "tax-id" : "6126019115",
+  "requested-amount" : "6VuGN2NUL5rQ9i5trF",
+  "problems-count" : 1,
+  "event" : "loan-application-incomplete",
   "logger" : "prod-app.log",
-  "message" : "SBA result available",
+  "message" : "Loan application does not satisfy reader spec",
   "context" : "default"
 }
 #+end_EXPORT
@@ -1556,7 +1556,7 @@ Testing prod-app.integration.topology-test
 |-------------------------------+-----------|
 | :sba-loan-application-updated |         1 |
 |         :sba-result-available |         1 |
-writing results to './test-results/journal-1592784859616'
+writing results to './test-results/journal-1592787386910'
 
 Ran 1 tests containing 5 assertions.
 0 failures, 0 errors.
@@ -1747,15 +1747,15 @@ tail -n 19 log/sba-connector-test.log
 #+RESULTS:
 #+begin_EXPORT json
 {
-  "timestamp" : "2020-06-22T00:14:47.412Z",
+  "timestamp" : "2020-06-22T00:56:54.297Z",
   "level" : "INFO",
-  "thread" : "prod-app-StreamThread-5",
+  "thread" : "prod-app-StreamThread-1",
   "loan-application-id" : "548a46b0-fa61-58e8-9dbf-52f60e3c0280",
   "published-by" : "sba-connector",
   "ns" : "prod-app.log",
   "line" : 53,
   "opportunity-id" : "Y8vcTAKn2Hx5K3",
-  "published-timestamp" : 1592784886563,
+  "published-timestamp" : 1592787413372,
   "column" : 17,
   "requested-amount" : "1",
   "id" : "d5d779e2-8edf-584b-8243-1a587221b902",
@@ -1799,7 +1799,7 @@ docker run --tty \
     "string": "548a46b0-fa61-58e8-9dbf-52f60e3c0280"
   },
   "published_timestamp": {
-    "long": 1592784886362
+    "long": 1592787413151
   },
   "published_by": {
     "string": "sba-connector"
@@ -1847,7 +1847,7 @@ docker run --tty \
     "string": "6126019115"
   },
   "published_timestamp": {
-    "long": 1592784886563
+    "long": 1592787413372
   },
   "published_by": {
     "string": "sba-connector"
