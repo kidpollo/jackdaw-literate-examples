@@ -3,6 +3,9 @@
 This is an example of what a production Jackdaw app would roughly look like
 using Literate programming.
 
+Note: Before going through this demo you might want to clear all the evaluation
+results with ~org-babel-remove-result-one-or-many~.
+
 ** Project Setup
 
 The initial setup is fairly standard. Should not be too different from your
@@ -271,7 +274,7 @@ digraph Topology {
 #+end_src
 
 #+RESULTS:
-: #:clojure.spec.alpha{:problems ({:path [:tax-id], :pred :clojure.spec.alpha/unknown, :val "foo", :via [:prod-app.specs.reader-specs/loan-application :loan-application/tax-id], :in [:tax-id]}), :spec :prod-app.specs.reader-specs/loan-application, :value {:loan-application-id #uuid "38024ce9-40c3-4482-8acf-3e55c509f9ba", :opportunity-id "external-id-for-a-loan", :requested-amount "100", :tax-id "foo"}}
+: #:clojure.spec.alpha{:problems ({:path [:tax-id], :pred :clojure.spec.alpha/unknown, :val "foo", :via [:prod-app.specs.reader-specs/loan-application :loan-application/tax-id], :in [:tax-id]}), :spec :prod-app.specs.reader-specs/loan-application, :value {:loan-application-id #uuid "2b651a08-1503-43c4-9ead-72712792f4d2", :opportunity-id "external-id-for-a-loan", :requested-amount "100", :tax-id "foo"}}
 
   A valid loan application entry in our state store.
 
@@ -956,6 +959,48 @@ implementation we will use for this project.
 : 
 : Ran 1 tests containing 9 assertions.
 : 0 failures, 0 errors.
+  
+  We get nice, readable logs with our log configuration for tests. Notice the
+  ~:wrap~ header argument on the following snippet.
+
+#+BEGIN_SRC bash :dir prod-app :results output :wrap src json :exports both
+tail -n 31 log/sba-connector-test.log 
+#+END_SRC
+
+#+RESULTS:
+#+begin_src json
+  "line" : 53,
+  "opportunity-id" : "Y8vcTAKn2Hx5K3",
+  "published-timestamp" : 1592791386769,
+  "column" : 17,
+  "requested-amount" : "1",
+  "id" : "d5d779e2-8edf-584b-8243-1a587221b902",
+  "event" : "sba-response-result",
+  "tax-id" : "6126019115",
+  "logger" : "prod-app.log",
+  "message" : "SBA response result",
+  "context" : "default"
+}
+{
+  "timestamp" : "2020-06-22T02:03:07.819Z",
+  "level" : "INFO",
+  "thread" : "prod-app-StreamThread-2",
+  "loan-application-id" : "548a46b0-fa61-58e8-9dbf-52f60e3c0280",
+  "published-by" : "sba-connector",
+  "ns" : "prod-app.log",
+  "line" : 53,
+  "opportunity-id" : "Y8vcTAKn2Hx5K3",
+  "published-timestamp" : 1592791386769,
+  "column" : 17,
+  "requested-amount" : "1",
+  "id" : "d5d779e2-8edf-584b-8243-1a587221b902",
+  "event" : "sba-result-available-event",
+  "tax-id" : "6126019115",
+  "logger" : "prod-app.log",
+  "message" : "SBA result available",
+  "context" : "default"
+}
+#+end_src
 
 ** The rest of the structure
 
@@ -1510,7 +1555,7 @@ Testing prod-app.integration.topology-test
 |-------------------------------+-----------|
 | :sba-loan-application-updated |         1 |
 |         :sba-result-available |         1 |
-writing results to './test-results/journal-1592789233694'
+writing results to './test-results/journal-1592791695018'
 
 Ran 1 tests containing 5 assertions.
 0 failures, 0 errors.
@@ -1701,15 +1746,15 @@ tail -n 19 log/sba-connector-test.log
 #+RESULTS:
 #+begin_src json
 {
-  "timestamp" : "2020-06-22T01:27:40.995Z",
+  "timestamp" : "2020-06-22T02:08:42.100Z",
   "level" : "INFO",
-  "thread" : "prod-app-StreamThread-4",
+  "thread" : "prod-app-StreamThread-3",
   "loan-application-id" : "548a46b0-fa61-58e8-9dbf-52f60e3c0280",
   "published-by" : "sba-connector",
   "ns" : "prod-app.log",
   "line" : 53,
   "opportunity-id" : "Y8vcTAKn2Hx5K3",
-  "published-timestamp" : 1592789260224,
+  "published-timestamp" : 1592791721252,
   "column" : 17,
   "requested-amount" : "1",
   "id" : "d5d779e2-8edf-584b-8243-1a587221b902",
@@ -1753,7 +1798,7 @@ docker run --tty \
     "string": "548a46b0-fa61-58e8-9dbf-52f60e3c0280"
   },
   "published_timestamp": {
-    "long": 1592789260004
+    "long": 1592791721033
   },
   "published_by": {
     "string": "sba-connector"
@@ -1801,7 +1846,7 @@ docker run --tty \
     "string": "6126019115"
   },
   "published_timestamp": {
-    "long": 1592789260224
+    "long": 1592791721252
   },
   "published_by": {
     "string": "sba-connector"
