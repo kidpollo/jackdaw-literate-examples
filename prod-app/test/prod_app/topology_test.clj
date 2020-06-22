@@ -45,7 +45,7 @@
     (let [state (atom {})
           registry (metrics/new-registry)
           external-loan-application (dissoc (gen-external-loan-app)
-                                            :zip-code)
+                                            :tax-id)
           opportunity-id (:opportunity-id external-loan-application)
           [[_ v]] (transduce
                    (sc/update-loan-application state

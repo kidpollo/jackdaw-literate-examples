@@ -1,0 +1,11 @@
+{honeybadger/env #config/or [#config/env "HONEYBADGER_ENVIRONMENT" "test"]
+ honeybadger/key #config/env "HONEYBADGER_API_KEY"
+ kafka/bootstrap-servers #config/or [#config/env "BOOTSTRAP_SERVERS"
+                                     "localhost:9092"]
+ kafka/schema-registry-url #config/or [#config/env "SCHEMA_REGISTRY_URL"
+                                       "http://localhost:8081"]
+ kafka/replication-factor #config/or [#config/env "REPLICATION_FACTOR" "1"]
+ topology/application-id #config/or [#config/env "APPLICATION_ID" "sba-connector-streams"]
+ sba/url #config/or [#config/env 
+                     "SBA_URL" 
+                     "https://run.mocky.io/v3/6ccb9c3d-2521-4b2b-b170-6f1d4d022526"]}

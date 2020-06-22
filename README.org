@@ -1,0 +1,34 @@
+* Jackdaw literate examples
+
+  Collection of Literate programming examples of [[https://github.com/FundingCircle/jackdaw][Jackdaw]] [[https://kafka.apache.org/documentation/streams/][Kafka Streams]] apps
+  using org-mode.
+
+** Docs
+
+*** Simple App
+
+  Start here! Very [[file:simple-app.org][simple]] example on how to build and a basic Clojure app using
+  org-mode.
+  
+*** Prod App
+
+  Full example of building a "[[file:prod-app.org][Prod Like]]" Jackdaw and Kafka Streams application
+  using org-mode. This example relies on Docker to run.
+
+*** Streams Basic
+
+  Examples of [[streams-basic.org][simple]] Kafka Streams topolgies using Jackdaw. These examples rely
+  on the confuent platform to run.
+
+** Requirements
+
+   * [[https://clojure.org/guides/getting_started][Clojure]]
+   * [[https://www.docker.com/][Docker]]
+   * [[https://www.confluent.io/product/confluent-platform/][Confluent Platform]]
+   * [[https://stedolan.github.io/jq/][jq]]
+   * [[https://www.gnu.org/software/emacs/][Emacs]]
+   * [[https://orgmode.org/][Org-mode]]
+   * [[https://orgmode.org/worg/org-contrib/babel/][Babel]]
+
+  Note: I have only tried to run this in Linux using Emacs 26.3. I very much
+  appreciate feedback on how it runs in different environmens :D

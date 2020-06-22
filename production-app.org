@@ -10,7 +10,7 @@ regular Clojure app setups. We'll include resources and bin folder for
 supporting files for deployment. We'll also include a sample Circle CI
 configuration mostly for illustration purposes.
 
-#+BEGIN_SRC zsh :results silent
+#+BEGIN_SRC bash :results silent
 mkdir -p prod-app/resources
 mkdir -p prod-app/resources/schemas
 mkdir -p prod-app/src/prod_app
@@ -25,8 +25,8 @@ mkdir -p prod-app/.circleci
 
 ** Dependencies
 
-Lets start with our deps file. We will include everything needed for building a
-production ready Jackdaw app. I'll go over the highlights after the snippet.
+  Lets start with our deps file. We will include everything needed for building a
+  production ready Jackdaw app. I'll go over the highlights after the snippet.
 
 #+begin_src clojure :tangle prod-app/deps.edn :eval no
 {:paths ["src" "resources"]
@@ -91,6 +91,12 @@ production ready Jackdaw app. I'll go over the highlights after the snippet.
  :mvn/repos
  {"confluent" {:url "https://packages.confluent.io/maven/"}}}
 #+end_src
+
+  Now that we have a deps file if you want to run the rest of the clojure
+  snippets be sure to connect to a REPL with these deps. I recommend jumping to
+  the tangled ~deps.edn~ and running ~cider-jack-in-clj~ and then jumping back
+  to this file and running ~cider-connect-clj~ with the host and port used by
+  your previous jack-in command.
 
 *** Core app.
   
@@ -204,32 +210,31 @@ digraph Topology {
             [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as gen] ))
 
-(s/def :loan-application/employee-count string?)
-(s/def :loan-application/requested-amount string?)
-(s/def :loan-application/sba-loan-number string?)
-
-(def tax-id?
-  (s/with-gen #(re-matches #"[0-9]{10}" %)
-    #(gen/return (str/join (map str (take 10 (repeatedly (fn [] (rand-int 10)))))))))
-
-(s/def :company/tax-id tax-id?)
-(s/def :company/business-name string?)
-(s/def :company/city-name string?)
-(s/def :company/country-code string?)
-(s/def :company/state-code string?)
-(s/def :company/street-name string?)
-(s/def :company/zip-code string?)
-(s/def :company/primary-phone string?)
-
-(s/def :metadata/loan-application-id uuid?)
-
 (s/def :external/opportunity-id string?)
 (s/def :external/trigger-id uuid?)
+
+(s/def :loan-application/requested-amount string?)
+(s/def :loan-application/loan-application-id uuid?)
+(s/def :loan-application/tax-id 
+  (s/with-gen #(re-matches #"[0-9]{10}" %)
+    #(gen/return (str/join (map str (take 10 (repeatedly (fn [] (rand-int 10)))))))))
+(s/def :loan-application/loan-application-is-complete boolean?)
+(s/def :loan-application/problem string?)
+(s/def :loan-application/problems
+  (s/* :loan-application/problem))
+
+(s/def :metadata/id uuid?)
+(s/def :metadata/published-timestamp int?)
+(s/def :metadata/published-by string?)
+
+(s/def :sba-response/status #{"success" "failure" "cancelled"})
+(s/def :sba-response/result string?)
+(s/def :sba-response/loan-number (s/nilable string?))
 #+END_SRC
 
-  Now we define our reader specs. These are the specs we use to read from the
-  internal state store or message streams. This specs are usually more stringent
-  as these are the ones used for validating our business logic.
+  Now we define our reader specs. For this demo the only difference between an
+  external and internal loan application is only ~loan-application-id~ being
+  absent in the external one.
 
 #+BEGIN_SRC clojure :tangle prod-app/src/prod_app/specs/reader_specs.clj :results silent
 (ns prod-app.specs.reader-specs
@@ -241,70 +246,56 @@ digraph Topology {
 
 (s/def ::loan-application
   (s/keys :req-un [:external/opportunity-id
-                   :metadata/loan-application-id
-                   :loan-application/employee-count
                    :loan-application/requested-amount
-                   :company/tax-id
-                   :company/business-name
-                   :company/city-name
-                   :company/state-code
-                   :company/street-name
-                   :company/zip-code
-                   :company/primary-phone]
-          :opt-un [:loan-application/sba-loan-number
-                   :company/country-code]))
+                   :loan-application/loan-application-id
+                   :loan-application/tax-id]))
 
 (s/def ::external-loan-application
   (s/keys :req-un [:external/opportunity-id
-                   :loan-application/employee-count
                    :loan-application/requested-amount
-                   :company/tax-id
-                   :company/business-name
-                   :company/city-name
-                   :company/state-code
-                   :company/street-name
-                   :company/zip-code
-                   :company/primary-phone]
-          :opt-un [:company/country-code]))
+                   :loan-application/tax-id]))
 
 (s/def ::external-trigger
   (s/keys :req-un [:external/opportunity-id
-                   :exteral/trigger-id]))
+                   :external/trigger-id]))
 #+END_SRC
+
+  A loan application with invalid tax id.
 
 #+begin_src clojure :tangle prod-app/dev/scratch.clj :exports both
 (s/explain-data ::loan-application 
                 {:loan-application-id (java.util.UUID/randomUUID)
-                 :employee-count "2"
+                 :opportunity-id "external-id-for-a-loan"
                  :requested-amount "100"
-                 :tax-id "1"
-                 :business-name "foo"
-                 :city-name "bar"
-                 :state-code "AZ"
-                 :street-name "Abbey Road"
-                 :zip-code "666"
-                 :primary-phone "1-800-EMPIRE"})
+                 :tax-id "foo"})
 #+end_src
 
 #+RESULTS:
-: #:clojure.spec.alpha{:problems ({:path [], :pred (clojure.core/fn [%] (clojure.core/contains? % :opportunity-id)), :val {:employee-count "2", :primary-phone "1-800-EMPIRE", :city-name "bar", :state-code "AZ", :business-name "foo", :tax-id "1", :loan-application-id #uuid "adf8a286-0cad-4d3f-8cec-3bde2d59737f", :zip-code "666", :street-name "Abbey Road", :requested-amount "100"}, :via [:prod-app.specs.reader-specs/loan-application], :in []} {:path [:tax-id], :pred :clojure.spec.alpha/unknown, :val "1", :via [:prod-app.specs.reader-specs/loan-application :company/tax-id], :in [:tax-id]}), :spec :prod-app.specs.reader-specs/loan-application, :value {:employee-count "2", :primary-phone "1-800-EMPIRE", :city-name "bar", :state-code "AZ", :business-name "foo", :tax-id "1", :loan-application-id #uuid "adf8a286-0cad-4d3f-8cec-3bde2d59737f", :zip-code "666", :street-name "Abbey Road", :requested-amount "100"}}
+: #:clojure.spec.alpha{:problems ({:path [:tax-id], :pred :clojure.spec.alpha/unknown, :val "foo", :via [:prod-app.specs.reader-specs/loan-application :loan-application/tax-id], :in [:tax-id]}), :spec :prod-app.specs.reader-specs/loan-application, :value {:loan-application-id #uuid "503d7ae5-aa4c-4074-a854-50493c7ee317", :opportunity-id "external-id-for-a-loan", :requested-amount "100", :tax-id "foo"}}
+
+  A valid loan application entry in our state store.
 
 #+begin_src clojure :tangle prod-app/dev/scratch.clj :results value :exports both
 (s/valid? ::loan-application
           {:loan-application-id (java.util.UUID/randomUUID)
-           :employee-count "2"
+           :opportunity-id "external-id-for-a-loan"
            :requested-amount "100"
-           :tax-id "1111111111"
-           :business-name "foo"
-           :city-name "bar"
-           :state-code "AZ"
-           :street-name "Abbey Road"
-           :zip-code "666"
-           :primary-phone "1-800-EMPIRE"})
+           :tax-id "1111111111"})
 #+end_src
 
 #+RESULTS:
-: false
+: true
+
+  This is what an ~external-trigger~ event looks like.
+
+#+begin_src clojure :tangle prod-app/dev/scratch.clj :results value :exports both
+(s/valid? ::external-trigger
+          {:trigger-id (java.util.UUID/randomUUID)
+           :opportunity-id "external-id-for-a-loan"})
+#+end_src
+
+#+RESULTS:
+: true
 
   Writer specs are the specs we use to write to Kafka topics. This specs are
   usually less stringent as they only require the minimum data required for us
@@ -313,7 +304,7 @@ digraph Topology {
   to the topic we are just aggregating data coming from the upstream external
   topics. The reader specs validate that a loan application is considered
   complete. Our topology will produce to ~sba-loan-updated-event~ with the right
-  value for ~:writer-specs.metadata/loan-application-is-complete~.
+  value for ~:loan-application/loan-application-is-complete~.
 
 #+BEGIN_SRC clojure :tangle prod-app/src/prod_app/specs/writer_specs.clj :results silent
 (ns prod-app.specs.writer-specs
@@ -323,58 +314,69 @@ digraph Topology {
             [prod-app.specs.attributes]))
 
 (s/def ::loan-application
-  (s/keys :req-un [:writer-specs.metadata/loan-application-id]
-
-          :opt-un [:writer-specs.loan-application/employee-count
-                   :writer-specs.loan-application/requested-amount
-                   :writer-specs.loan-application/sba-loan-number
-                   :writer-specs.company/tax-id
-                   :writer-specs.company/business-name
-                   :writer-specs.company/city-name
-                   :writer-specs.company/country-code
-                   :writer-specs.company/state-code
-                   :writer-specs.company/street-name
-                   :writer-specs.company/zip-code
-                   :writer-specs.company/primary-phone]))
-
-(s/def :writer-specs.sba/status #{"success" "failure" "cancelled"})
-(s/def :writer-specs.sba/result string?)
-(s/def :writer-specs.sba/loan-number (s/nilable string?))
+  (s/keys :req-un [:metadata/loan-application-id]
+          :opt-un [:loan-application/requested-amount
+                   :external/opportunity-id
+                   :loan-application/tax-id]))
 
 (s/def ::result
-  (s/keys :req-un [:writer-specs.sba/status
-                   :writer-specs.sba/result]
-          :opt-un [:writer-specs.sba/loan-number]))
-
-(s/def :writer-specs.metadata/loan-application-id :metadata/loan-application-id)
-(s/def :writer-specs.metadata/exteral-opportunity-id :external/opportunity-id)
-
-(s/def :writer-specs.metadata/id uuid?)
-(s/def :writer-specs.metadata/published-timestamp int?)
-(s/def :writer-specs.metadata/published-by string?)
+  (s/keys :req-un [:sba-response/status
+                   :sba-response/result]
+          :opt-un [:sba-response/loan-number]))
 
 (s/def ::metadata
-  (s/keys :req-un [:writer-specs.metadata/id
-                   :writer-specs.metadata/published-timestamp
-                   :writer-specs.metadata/published-by]))
-
-(s/def :writer-specs.metadata/loan-application-is-complete boolean?)
-(s/def :writer-specs.metadata/problem string?)
-
-(s/def :writer-specs.metadata/problems
-  (s/* :writer-specs.metadata/problem))
+  (s/keys :req-un [:metadata/id
+                   :metadata/published-timestamp
+                   :metadata/published-by]))
 
 (s/def ::sba-loan-application-updated-event
   (s/merge ::loan-application
-           (s/keys :req-un [:writer-specs.metadata/loan-application-is-complete])
+           (s/keys :req-un [:loan-application/loan-application-is-complete])
            ::metadata
-           (s/keys :req-un [:writer-specs.metadata/problems])))
+           (s/keys :req-un [:loan-application/problems])))
 
 (s/def ::sba-result-available-event
   (s/merge ::result
            ::loan-application
            ::metadata))
 #+END_SRC
+
+  This is an example of an entry we expect on the ~sba-loan-application-updated-event~
+
+#+begin_src clojure :tangle prod-app/dev/scratch.clj :results value :exports both
+(s/valid? ::sba-loan-application-updated-event
+          {:loan-application-id (java.util.UUID/randomUUID)
+           :loan-application-is-complete true
+           :problems []
+           :opportunity-id "external-id-for-a-loan"
+           :requested-amount "100"
+           :tax-id "1111111111"
+           :id (java.util.UUID/randomUUID)
+           :published-timestamp 1
+           :published-by "test"})
+#+end_src
+
+#+RESULTS:
+: true
+
+  This is an example of an entry we expect on the ~sba-result-available-event~
+
+#+begin_src clojure :tangle prod-app/dev/scratch.clj :results value :exports both
+(s/valid? ::sba-result-available-event
+          {:loan-application-id (java.util.UUID/randomUUID)
+           :opportunity-id "external-id-for-a-loan"
+           :requested-amount "100"
+           :tax-id "1111111111"
+           :id (java.util.UUID/randomUUID)
+           :published-timestamp 1
+           :published-by "test"
+           :status "success"
+           :result ""
+           :loan-number "123"})
+#+end_src
+
+#+RESULTS:
+: true
 
 *** Logging and metrics
 
@@ -441,28 +443,9 @@ diagnose and track the health of our application.
   (let [other-keys (apply (partial dissoc all-keys) [:level :event :message :metrics-registry])
         log-fn #(cambium-core/log level % throwable message)]
     (as-> (apply merge things) mdc
-      (select-keys mdc [:id
-                        :body
-                        :status
-                        :result
-                        :loan-number
-                        :topic-name
-                        :opportunity-id
-                        :loan-application-id
-                        :loan-number
-                        :sba-loan-number
-                        :sba-result
-                        :sba-status
-                        :metadata/id
-                        :sba/status
-                        :sba/loan-number
-                        :sba/result
-                        :metadata/loan-application-id])
-      (set/rename-keys mdc {:sba/status :status
-                            :sba/loan-number :sba-loan-number
-                            :sba/result :result
-                            :metadata/id :id
-                            :metadata/loan-application-id :loan-application-id})
+      (select-keys mdc [:loan-application-id :loan-application-is-complete :problems
+                        :opportunity-id :requested-amount :tax-id :id :published-timestamp
+                        :published-by])
       (merge mdc
              {:event event}
              other-keys)
@@ -754,7 +737,7 @@ implementation we will use for this project.
       ([result record]
        (let [[_ v] record
              opportunity-id (:opportunity-id v)
-             request-body {:dummy-request loan-application}
+             request-body (json/write-str {:dummy-request (str loan-application)})
              loan-application (get-fn (deref-fn state) opportunity-id)
              loan-application (into {} (remove (comp nil? val) loan-application))
              id (uuid/v5 uuid/+namespace-url+ (:trigger-id v))
@@ -773,7 +756,7 @@ implementation we will use for this project.
              (rf result []))
 
            (s/valid? ::r-specs/loan-application loan-application)
-           (let [url (get-in config [:sba :url])
+           (let [url (get-in config [:sba-config :url])
                  body request-body
                  _ (log/logger
                     {:level :info
@@ -812,10 +795,10 @@ implementation we will use for this project.
 
            :else
            (let [_ (as-> {} %
-                     (merge  % {:sba/status "cancelled"
-                                :sba/loan-number nil
-                                :sba/result (str "Could not send HTTP request. "
-                                                 "The loan application does not satisfy the reader spec.")}
+                     (merge  % {:status "cancelled"
+                                :loan-number nil
+                                :result (str "Could not send HTTP request. "
+                                             "The loan application does not satisfy the reader spec.")}
                              loan-application
                              metadata)
                      (do
@@ -946,7 +929,7 @@ implementation we will use for this project.
     (let [state (atom {})
           registry (metrics/new-registry)
           external-loan-application (dissoc (gen-external-loan-app)
-                                            :zip-code)
+                                            :tax-id)
           opportunity-id (:opportunity-id external-loan-application)
           [[_ v]] (transduce
                    (sc/update-loan-application state
@@ -978,41 +961,41 @@ implementation we will use for this project.
   We get nice, readable logs with our log configuration for tests. Notice the
   ~:wrap~ header argument on the following snippet.
 
-#+BEGIN_SRC zsh :dir prod-app :results output :wrap EXPORT json
+#+BEGIN_SRC bash :dir prod-app :results output :wrap EXPORT json :exports both
 tail -n 31 log/sba-connector-test.log 
 #+END_SRC
 
 #+RESULTS:
 #+begin_EXPORT json
-{
-  "timestamp" : "2020-06-19T01:14:26.492Z",
-  "level" : "INFO",
-  "thread" : "nREPL-session-92ad42cc-9e1f-4785-80c6-cdbf644d323a",
-  "loan-application-id" : "c5919d92-2de1-521e-900d-272f46a5d24e",
-  "sba-loan-number" : "E7pmtzznc01ABuHds",
-  "ns" : "prod-app.log",
   "line" : 53,
-  "opportunity-id" : "G0Yv3CC86cmjPrI85UobrjkM",
+  "opportunity-id" : "Y8vcTAKn2Hx5K3",
+  "published-timestamp" : 1592784425178,
   "column" : 17,
-  "event" : "loan-application-attribute-validation-success",
+  "requested-amount" : "1",
+  "id" : "d5d779e2-8edf-584b-8243-1a587221b902",
+  "event" : "sba-response-result",
+  "tax-id" : "6126019115",
   "logger" : "prod-app.log",
-  "message" : "Loan application attributes satisfy writer spec",
+  "message" : "SBA response result",
   "context" : "default"
 }
 {
-  "timestamp" : "2020-06-19T01:14:26.493Z",
+  "timestamp" : "2020-06-22T00:07:05.925Z",
   "level" : "INFO",
-  "thread" : "nREPL-session-92ad42cc-9e1f-4785-80c6-cdbf644d323a",
-  "loan-application-id" : "c5919d92-2de1-521e-900d-272f46a5d24e",
-  "sba-loan-number" : "E7pmtzznc01ABuHds",
+  "thread" : "prod-app-StreamThread-5",
+  "loan-application-id" : "548a46b0-fa61-58e8-9dbf-52f60e3c0280",
+  "published-by" : "sba-connector",
   "ns" : "prod-app.log",
   "line" : 53,
-  "opportunity-id" : "G0Yv3CC86cmjPrI85UobrjkM",
+  "opportunity-id" : "Y8vcTAKn2Hx5K3",
+  "published-timestamp" : 1592784425178,
   "column" : 17,
-  "problems-count" : 1,
-  "event" : "loan-application-incomplete",
+  "requested-amount" : "1",
+  "id" : "d5d779e2-8edf-584b-8243-1a587221b902",
+  "event" : "sba-result-available-event",
+  "tax-id" : "6126019115",
   "logger" : "prod-app.log",
-  "message" : "Loan application does not satisfy reader spec",
+  "message" : "SBA result available",
   "context" : "default"
 }
 #+end_EXPORT
@@ -1374,11 +1357,7 @@ tail -n 31 log/sba-connector-test.log
     :app :sba-connector})
 
 (def sba-config
-  '{:user cafs/user
-    :password cafs/password
-    :email cafs/email
-    :url sba/url
-    :partner-info {:partner/location-id fc/location-id}})
+  '{:url sba/url})
 
 (def config-template
   "A template that is filled in via outpace (see common.config)
@@ -1431,6 +1410,22 @@ tail -n 31 log/sba-connector-test.log
                         :topics (ig/ref ::topics/topics)
                         :topology (ig/ref ::streams/topology)}})
 #+END_SRC
+
+  We define the corresponding ~config.edn~ file
+
+#+begin_src clojure :tangle prod-app/resources/config.edn :eval no
+{honeybadger/env #config/or [#config/env "HONEYBADGER_ENVIRONMENT" "test"]
+ honeybadger/key #config/env "HONEYBADGER_API_KEY"
+ kafka/bootstrap-servers #config/or [#config/env "BOOTSTRAP_SERVERS"
+                                     "localhost:9092"]
+ kafka/schema-registry-url #config/or [#config/env "SCHEMA_REGISTRY_URL"
+                                       "http://localhost:8081"]
+ kafka/replication-factor #config/or [#config/env "REPLICATION_FACTOR" "1"]
+ topology/application-id #config/or [#config/env "APPLICATION_ID" "sba-connector-streams"]
+ sba/url #config/or [#config/env 
+                     "SBA_URL" 
+                     "https://run.mocky.io/v3/6ccb9c3d-2521-4b2b-b170-6f1d4d022526"]}
+#+end_src
 
 ** Integration tests
 
@@ -1561,8 +1556,320 @@ Testing prod-app.integration.topology-test
 |-------------------------------+-----------|
 | :sba-loan-application-updated |         1 |
 |         :sba-result-available |         1 |
-writing results to './test-results/journal-1592529916911'
+writing results to './test-results/journal-1592784859616'
 
 Ran 1 tests containing 5 assertions.
 0 failures, 0 errors.
 #+end_example
+
+** Running our app
+
+  Now lets see how to run this locally to showcase how this app would actually
+  run in prod with a running Kafka. First we need an entrypoint.
+
+#+begin_src clojure :tangle prod-app/src/prod_app/core.clj :results silent
+(ns prod-app.core
+  (:require [prod-app.config :as config]
+            [integrant.core :as ig]))
+
+;;  This hash-map will get filled in with data carrying stateful
+;;  resources defined via integrant.
+;;  After starting the services you can find the resources they
+;;  provide under their defining keys.
+(defonce app
+  {})
+
+(defn fresh-app
+  [state]
+  (def app (ig/init state)))
+
+;; TODO: figure out a better way to do the main thats safe
+(defn -main
+  "Reloads config.
+  Starts and binds the running app."
+  []
+  (fresh-app config/sba-connector-app-state))
+#+end_src
+  
+  We need a runtime environment to run our example. For that we'll rely on
+  docker-compose.
+
+#+begin_src yaml :tangle prod-app/docker-compose.yml :eval no
+---
+version: '2'
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:5.5.0
+    hostname: zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  broker:
+    image: confluentinc/cp-kafka:5.5.0
+    hostname: broker
+    container_name: broker
+    depends_on:
+      - zookeeper
+    ports:
+      - "29092:29092"
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:5.5.0
+    hostname: schema-registry
+    container_name: schema-registry
+    depends_on:
+      - zookeeper
+      - broker
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'zookeeper:2181'
+#+end_src
+
+  Now we can define a "slow" and manual end to end test for our topology running
+  on Kafka environment. This also helps us understand what kind of setup our app
+  woulr need in production. Be patient :P
+
+#+BEGIN_SRC bash :dir prod-app :tangle prod-app/bin/end-to-end.bash :results pp :exports both
+#!/usr/bin/bash
+echo "clear the logs"
+rm log/sba-connector-test.log
+
+echo "resetting the runtime"
+docker-compose down -v
+docker-compose up -d schema-registry
+
+echo "waiting for schema registry up"
+sleep 10
+
+echo "running our topology"
+clojure -C:test -m prod-app.core &
+echo "registering external schemas"
+echo '{"schema": ""}' | jq --rawfile foo resources/schemas/external-trigger.json '. |= {schema: $foo, schemaType: "AVRO"}' | curl -X POST -H "Content-Type: application/json" http://localhost:8081/subjects/external-trigger-1-value/versions -d @-
+echo '{"schema": ""}' | jq --rawfile foo resources/schemas/external-loan-application.json '. |= {schema: $foo, schemaType: "AVRO"}' | curl -X POST -H "Content-Type: application/json" http://localhost:8081/subjects/external-loan-application-1-value/versions -d @-
+
+
+echo "producing external loan application"
+{
+  eval docker-compose exec -T schema-registry kafka-avro-console-producer \
+       --bootstrap-server broker:29092 \
+       --topic external-loan-application-1 \
+       --property value.schema=\'$(cat resources/schemas/external-loan-application.json)\' \
+       --property parse.key=true \
+       --property key.schema=\'$(echo '{"type":"string"}')\' \
+       --property key.separator=\" \" \
+       <<< '"Y8vcTAKn2Hx5K3" {"opportunity_id": {"string": "Y8vcTAKn2Hx5K3"}, "requested_amount": {"string": "1"}, "loan_application_id": {"string": "0b62206c-d244-4a4f-80ce-daa164934b53"}, "tax_id": {"string": "6126019115"}}' 
+} &> /dev/null # supresess the super verbose utility
+
+echo "producing a trigger"
+{
+  eval docker-compose exec -T schema-registry kafka-avro-console-producer \
+    --bootstrap-server broker:29092 \
+    --topic external-trigger-1 \
+    --property value.schema=\'$(cat resources/schemas/external-trigger.json)\' \
+    --property parse.key=true \
+    --property key.schema=\'$(echo '{"type":"string"}')\' \
+    --property key.separator=\" \" \
+    <<< '"Y8vcTAKn2Hx5K3" {"opportunity_id": {"string": "Y8vcTAKn2Hx5K3"}, "trigger_id": {"string": "7d7c6ca4-71e0-4228-a231-6a5449a864e7"}}' 
+} &> /dev/null # surpreses the super verbose utility
+echo "Wait for records to be processed"
+sleep 10
+pkill -P $$
+echo "Done"
+#+END_SRC
+
+#+RESULTS:
+: clear the logs
+: resetting the runtime
+: waiting for schema registry up
+: running our topology
+: registering external schemas
+: {"id":1}{"id":2}producing external loan application
+: producing a trigger
+: Wait for records to be processed
+: Done
+
+  After the run we can see the topics that were created by our topology
+
+#+BEGIN_SRC bash :dir prod-app
+docker-compose exec -T broker kafka-topics --list --bootstrap-server localhost:9092
+#+END_SRC
+
+#+RESULTS:
+| __confluent.support.metrics           |
+| __consumer_offsets                    |
+| __transaction_state                   |
+| _schemas                              |
+| external-loan-application-1           |
+| external-trigger-1                    |
+| sba-connector-streams-state-changelog |
+| sba-loan-application-updated-1        |
+| sba-result-available-1                |
+
+  The internal schemas where defined by the topology when it was writing to
+  them. The external ones we had to create manually in the script above.
+
+#+BEGIN_SRC bash :dir prod-app
+curl http://localhost:8081/subjects | jq .
+#+END_SRC
+
+#+RESULTS:
+| [                                    |
+| external-loan-application-1-value    |
+| sba-loan-application-updated-1-value |
+| external-trigger-1-key               |
+| external-trigger-1-value             |
+| external-loan-application-1-key      |
+| sba-result-available-1-value         |
+| ]                                    |
+
+  We can peek at our logs and we see that a sba result was published.
+
+#+BEGIN_SRC bash :dir prod-app :results output :wrap EXPORT json :exports both
+tail -n 19 log/sba-connector-test.log
+#+END_SRC
+
+#+RESULTS:
+#+begin_EXPORT json
+{
+  "timestamp" : "2020-06-22T00:14:47.412Z",
+  "level" : "INFO",
+  "thread" : "prod-app-StreamThread-5",
+  "loan-application-id" : "548a46b0-fa61-58e8-9dbf-52f60e3c0280",
+  "published-by" : "sba-connector",
+  "ns" : "prod-app.log",
+  "line" : 53,
+  "opportunity-id" : "Y8vcTAKn2Hx5K3",
+  "published-timestamp" : 1592784886563,
+  "column" : 17,
+  "requested-amount" : "1",
+  "id" : "d5d779e2-8edf-584b-8243-1a587221b902",
+  "event" : "sba-result-available-event",
+  "tax-id" : "6126019115",
+  "logger" : "prod-app.log",
+  "message" : "SBA result available",
+  "context" : "default"
+}
+#+end_EXPORT
+
+  We can also validate the content of our topics. Use ~kafkacat~ for consuming
+  from kafka topic. Its way better than the ~kafka-console-consumor~ and it
+  recently added support for AVRO
+
+ #+BEGIN_SRC bash :dir prod-app :results output :wrap EXPORT json :exports both
+docker run --tty \
+  --network host \
+  edenhill/kafkacat:1.5.0 \
+  kafkacat -e -q  -b localhost:9092 \
+  -s avro -r http://localhost:8081 \
+  -t sba-loan-application-updated-1 | jq .
+#+END_SRC
+
+#+RESULTS:
+#+begin_EXPORT json
+{
+  "loan_application_id": {
+    "string": "548a46b0-fa61-58e8-9dbf-52f60e3c0280"
+  },
+  "opportunity_id": {
+    "string": "Y8vcTAKn2Hx5K3"
+  },
+  "requested_amount": {
+    "string": "1"
+  },
+  "tax_id": {
+    "string": "6126019115"
+  },
+  "id": {
+    "string": "548a46b0-fa61-58e8-9dbf-52f60e3c0280"
+  },
+  "published_timestamp": {
+    "long": 1592784886362
+  },
+  "published_by": {
+    "string": "sba-connector"
+  },
+  "loan_application_is_complete": {
+    "boolean": true
+  },
+  "problems": {
+    "array": []
+  }
+}
+#+end_EXPORT
+
+#+BEGIN_SRC bash :dir prod-app :results output :wrap EXPORT json :exports both
+docker run --tty \
+  --network host \
+  edenhill/kafkacat:1.5.0 \
+  kafkacat -e -q  -b localhost:9092 \
+  -s avro -r http://localhost:8081 \
+  -t sba-result-available-1 | jq .
+#+END_SRC
+
+#+RESULTS:
+#+begin_EXPORT json
+{
+  "id": {
+    "string": "d5d779e2-8edf-584b-8243-1a587221b902"
+  },
+  "status": {
+    "string": "success"
+  },
+  "result": {
+    "string": "{\"loan-number\":\"123\"}"
+  },
+  "loan_number": {
+    "string": "123"
+  },
+  "loan_application_id": {
+    "string": "548a46b0-fa61-58e8-9dbf-52f60e3c0280"
+  },
+  "requested_amount": {
+    "string": "1"
+  },
+  "tax_id": {
+    "string": "6126019115"
+  },
+  "published_timestamp": {
+    "long": 1592784886563
+  },
+  "published_by": {
+    "string": "sba-connector"
+  },
+  "opportunity_id": {
+    "string": "Y8vcTAKn2Hx5K3"
+  }
+}
+#+end_EXPORT
+
+  We can even inspect our state store backing topic created by Kafka Streams.
+  Notice that the data in the backing state store is plain EDN :D
+
+#+BEGIN_SRC bash :dir prod-app :results output :wrap EXPORT clojure :exports both
+docker run --tty \
+  --network host \
+  edenhill/kafkacat:1.5.0 \
+  kafkacat -e -q -b localhost:9092  \
+  -t sba-connector-streams-state-changelog
+#+END_SRC
+
+#+RESULTS:
+#+begin_EXPORT clojure
+{:loan-application-id #uuid "548a46b0-fa61-58e8-9dbf-52f60e3c0280", :opportunity-id "Y8vcTAKn2Hx5K3", :requested-amount "1", :tax-id "6126019115"}
+#+end_EXPORT

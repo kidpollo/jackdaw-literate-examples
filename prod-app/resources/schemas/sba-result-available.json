@@ -49,14 +49,6 @@
       "default": null
     },
     {
-      "name": "employee_count",
-      "type": [
-        "null",
-        "string"
-      ],
-      "default": null
-    },
-    {
       "name": "requested_amount",
       "type": [
         "null",
@@ -65,71 +57,7 @@
       "default": null
     },
     {
-      "name": "sba_loan_number",
-      "type": [
-        "null",
-        "string"
-      ],
-      "default": null
-    },
-    {
       "name": "tax_id",
-      "type": [
-        "null",
-        "string"
-      ],
-      "default": null
-    },
-    {
-      "name": "business_name",
-      "type": [
-        "null",
-        "string"
-      ],
-      "default": null
-    },
-    {
-      "name": "city_name",
-      "type": [
-        "null",
-        "string"
-      ],
-      "default": null
-    },
-    {
-      "name": "country_code",
-      "type": [
-        "null",
-        "string"
-      ],
-      "default": null
-    },
-    {
-      "name": "state_code",
-      "type": [
-        "null",
-        "string"
-      ],
-      "default": null
-    },
-    {
-      "name": "street_name",
-      "type": [
-        "null",
-        "string"
-      ],
-      "default": null
-    },
-    {
-      "name": "zip_code",
-      "type": [
-        "null",
-        "string"
-      ],
-      "default": null
-    },
-    {
-      "name": "primary_phone",
       "type": [
         "null",
         "string"

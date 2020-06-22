@@ -65,11 +65,7 @@
     :app :sba-connector})
 
 (def sba-config
-  '{:user cafs/user
-    :password cafs/password
-    :email cafs/email
-    :url sba/url
-    :partner-info {:partner/location-id fc/location-id}})
+  '{:url sba/url})
 
 (def config-template
   "A template that is filled in via outpace (see common.config)

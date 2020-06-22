@@ -52,28 +52,9 @@
   (let [other-keys (apply (partial dissoc all-keys) [:level :event :message :metrics-registry])
         log-fn #(cambium-core/log level % throwable message)]
     (as-> (apply merge things) mdc
-      (select-keys mdc [:id
-                        :body
-                        :status
-                        :result
-                        :loan-number
-                        :topic-name
-                        :opportunity-id
-                        :loan-application-id
-                        :loan-number
-                        :sba-loan-number
-                        :sba-result
-                        :sba-status
-                        :metadata/id
-                        :sba/status
-                        :sba/loan-number
-                        :sba/result
-                        :metadata/loan-application-id])
-      (set/rename-keys mdc {:sba/status :status
-                            :sba/loan-number :sba-loan-number
-                            :sba/result :result
-                            :metadata/id :id
-                            :metadata/loan-application-id :loan-application-id})
+      (select-keys mdc [:loan-application-id :loan-application-is-complete :problems
+                        :opportunity-id :requested-amount :tax-id :id :published-timestamp
+                        :published-by])
       (merge mdc
              {:event event}
              other-keys)

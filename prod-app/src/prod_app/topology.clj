@@ -106,7 +106,7 @@
       ([result record]
        (let [[_ v] record
              opportunity-id (:opportunity-id v)
-             request-body {:dummy-request loan-application}
+             request-body (json/write-str {:dummy-request (str loan-application)})
              loan-application (get-fn (deref-fn state) opportunity-id)
              loan-application (into {} (remove (comp nil? val) loan-application))
              id (uuid/v5 uuid/+namespace-url+ (:trigger-id v))
@@ -125,7 +125,7 @@
              (rf result []))
 
            (s/valid? ::r-specs/loan-application loan-application)
-           (let [url (get-in config [:sba :url])
+           (let [url (get-in config [:sba-config :url])
                  body request-body
                  _ (log/logger
                     {:level :info
@@ -164,10 +164,10 @@
 
            :else
            (let [_ (as-> {} %
-                     (merge  % {:sba/status "cancelled"
-                                :sba/loan-number nil
-                                :sba/result (str "Could not send HTTP request. "
-                                                 "The loan application does not satisfy the reader spec.")}
+                     (merge  % {:status "cancelled"
+                                :loan-number nil
+                                :result (str "Could not send HTTP request. "
+                                             "The loan application does not satisfy the reader spec.")}
                              loan-application
                              metadata)
                      (do

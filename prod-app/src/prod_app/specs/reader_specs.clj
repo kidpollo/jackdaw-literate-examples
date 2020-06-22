@@ -7,32 +7,15 @@
 
 (s/def ::loan-application
   (s/keys :req-un [:external/opportunity-id
-                   :metadata/loan-application-id
-                   :loan-application/employee-count
                    :loan-application/requested-amount
-                   :company/tax-id
-                   :company/business-name
-                   :company/city-name
-                   :company/state-code
-                   :company/street-name
-                   :company/zip-code
-                   :company/primary-phone]
-          :opt-un [:loan-application/sba-loan-number
-                   :company/country-code]))
+                   :loan-application/loan-application-id
+                   :loan-application/tax-id]))
 
 (s/def ::external-loan-application
   (s/keys :req-un [:external/opportunity-id
-                   :loan-application/employee-count
                    :loan-application/requested-amount
-                   :company/tax-id
-                   :company/business-name
-                   :company/city-name
-                   :company/state-code
-                   :company/street-name
-                   :company/zip-code
-                   :company/primary-phone]
-          :opt-un [:company/country-code]))
+                   :loan-application/tax-id]))
 
 (s/def ::external-trigger
   (s/keys :req-un [:external/opportunity-id
-                   :exteral/trigger-id]))
+                   :external/trigger-id]))

@@ -1,26 +1,41 @@
 (s/explain-data ::loan-application 
                 {:loan-application-id (java.util.UUID/randomUUID)
-                 :employee-count "2"
+                 :opportunity-id "external-id-for-a-loan"
                  :requested-amount "100"
-                 :tax-id "1"
-                 :business-name "foo"
-                 :city-name "bar"
-                 :state-code "AZ"
-                 :street-name "Abbey Road"
-                 :zip-code "666"
-                 :primary-phone "1-800-EMPIRE"})
+                 :tax-id "foo"})
 
 (s/valid? ::loan-application
           {:loan-application-id (java.util.UUID/randomUUID)
-           :employee-count "2"
+           :opportunity-id "external-id-for-a-loan"
+           :requested-amount "100"
+           :tax-id "1111111111"})
+
+(s/valid? ::external-trigger
+          {:trigger-id (java.util.UUID/randomUUID)
+           :opportunity-id "external-id-for-a-loan"})
+
+(s/valid? ::sba-loan-application-updated-event
+          {:loan-application-id (java.util.UUID/randomUUID)
+           :loan-application-is-complete true
+           :problems []
+           :opportunity-id "external-id-for-a-loan"
            :requested-amount "100"
            :tax-id "1111111111"
-           :business-name "foo"
-           :city-name "bar"
-           :state-code "AZ"
-           :street-name "Abbey Road"
-           :zip-code "666"
-           :primary-phone "1-800-EMPIRE"})
+           :id (java.util.UUID/randomUUID)
+           :published-timestamp 1
+           :published-by "test"})
+
+(s/valid? ::sba-result-available-event
+          {:loan-application-id (java.util.UUID/randomUUID)
+           :opportunity-id "external-id-for-a-loan"
+           :requested-amount "100"
+           :tax-id "1111111111"
+           :id (java.util.UUID/randomUUID)
+           :published-timestamp 1
+           :published-by "test"
+           :status "success"
+           :result ""
+           :loan-number "123"})
 
 (ns clojure.test)
 (run-tests 'prod-app.topology-test)
