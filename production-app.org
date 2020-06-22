@@ -274,7 +274,7 @@ digraph Topology {
 #+end_src
 
 #+RESULTS:
-: #:clojure.spec.alpha{:problems ({:path [:tax-id], :pred :clojure.spec.alpha/unknown, :val "foo", :via [:prod-app.specs.reader-specs/loan-application :loan-application/tax-id], :in [:tax-id]}), :spec :prod-app.specs.reader-specs/loan-application, :value {:loan-application-id #uuid "2b651a08-1503-43c4-9ead-72712792f4d2", :opportunity-id "external-id-for-a-loan", :requested-amount "100", :tax-id "foo"}}
+: #:clojure.spec.alpha{:problems ({:path [:tax-id], :pred :clojure.spec.alpha/unknown, :val "foo", :via [:prod-app.specs.reader-specs/loan-application :loan-application/tax-id], :in [:tax-id]}), :spec :prod-app.specs.reader-specs/loan-application, :value {:loan-application-id #uuid "c8077ffa-fd5c-445c-bab0-d1427c23ef4b", :opportunity-id "external-id-for-a-loan", :requested-amount "100", :tax-id "foo"}}
 
   A valid loan application entry in our state store.
 
@@ -964,40 +964,25 @@ implementation we will use for this project.
   ~:wrap~ header argument on the following snippet.
 
 #+BEGIN_SRC bash :dir prod-app :results output :wrap src json :exports both
-tail -n 31 log/sba-connector-test.log 
+tail -n 16 log/sba-connector-test.log 
 #+END_SRC
 
 #+RESULTS:
 #+begin_src json
-  "line" : 53,
-  "opportunity-id" : "Y8vcTAKn2Hx5K3",
-  "published-timestamp" : 1592791386769,
-  "column" : 17,
-  "requested-amount" : "1",
-  "id" : "d5d779e2-8edf-584b-8243-1a587221b902",
-  "event" : "sba-response-result",
-  "tax-id" : "6126019115",
-  "logger" : "prod-app.log",
-  "message" : "SBA response result",
-  "context" : "default"
-}
 {
-  "timestamp" : "2020-06-22T02:03:07.819Z",
+  "timestamp" : "2020-06-22T02:19:00.020Z",
   "level" : "INFO",
-  "thread" : "prod-app-StreamThread-2",
-  "loan-application-id" : "548a46b0-fa61-58e8-9dbf-52f60e3c0280",
-  "published-by" : "sba-connector",
+  "thread" : "nREPL-session-26a6ef84-6d58-4996-91be-5ea0bfac3035",
+  "loan-application-id" : "d4315543-3893-5201-90be-a07b27700b44",
   "ns" : "prod-app.log",
   "line" : 53,
-  "opportunity-id" : "Y8vcTAKn2Hx5K3",
-  "published-timestamp" : 1592791386769,
+  "opportunity-id" : "0b5cdMjPn0MMV6N579",
   "column" : 17,
-  "requested-amount" : "1",
-  "id" : "d5d779e2-8edf-584b-8243-1a587221b902",
-  "event" : "sba-result-available-event",
-  "tax-id" : "6126019115",
+  "requested-amount" : "G32AAN4502JI",
+  "problems-count" : 1,
+  "event" : "loan-application-incomplete",
   "logger" : "prod-app.log",
-  "message" : "SBA result available",
+  "message" : "Loan application does not satisfy reader spec",
   "context" : "default"
 }
 #+end_src
@@ -1555,7 +1540,7 @@ Testing prod-app.integration.topology-test
 |-------------------------------+-----------|
 | :sba-loan-application-updated |         1 |
 |         :sba-result-available |         1 |
-writing results to './test-results/journal-1592791695018'
+writing results to './test-results/journal-1592792343209'
 
 Ran 1 tests containing 5 assertions.
 0 failures, 0 errors.
@@ -1746,7 +1731,7 @@ tail -n 19 log/sba-connector-test.log
 #+RESULTS:
 #+begin_src json
 {
-  "timestamp" : "2020-06-22T02:08:42.100Z",
+  "timestamp" : "2020-06-22T02:19:29.334Z",
   "level" : "INFO",
   "thread" : "prod-app-StreamThread-3",
   "loan-application-id" : "548a46b0-fa61-58e8-9dbf-52f60e3c0280",
@@ -1754,7 +1739,7 @@ tail -n 19 log/sba-connector-test.log
   "ns" : "prod-app.log",
   "line" : 53,
   "opportunity-id" : "Y8vcTAKn2Hx5K3",
-  "published-timestamp" : 1592791721252,
+  "published-timestamp" : 1592792368481,
   "column" : 17,
   "requested-amount" : "1",
   "id" : "d5d779e2-8edf-584b-8243-1a587221b902",
@@ -1798,7 +1783,7 @@ docker run --tty \
     "string": "548a46b0-fa61-58e8-9dbf-52f60e3c0280"
   },
   "published_timestamp": {
-    "long": 1592791721033
+    "long": 1592792368267
   },
   "published_by": {
     "string": "sba-connector"
@@ -1846,7 +1831,7 @@ docker run --tty \
     "string": "6126019115"
   },
   "published_timestamp": {
-    "long": 1592791721252
+    "long": 1592792368481
   },
   "published_by": {
     "string": "sba-connector"
@@ -1860,7 +1845,7 @@ docker run --tty \
   We can even inspect our state store backing topic created by Kafka Streams.
   Notice that the data in the backing state store is plain EDN :D
 
-#+BEGIN_SRC bash :dir prod-app :results output :wrap export clojure :exports both
+#+BEGIN_SRC bash :dir prod-app :results output :wrap src clojure :exports both
 docker run --tty \
   --network host \
   edenhill/kafkacat:1.5.0 \
@@ -1869,6 +1854,9 @@ docker run --tty \
 #+END_SRC
 
 #+RESULTS:
-#+begin_export clojure
+#+begin_src clojure
 {:loan-application-id #uuid "548a46b0-fa61-58e8-9dbf-52f60e3c0280", :opportunity-id "Y8vcTAKn2Hx5K3", :requested-amount "1", :tax-id "6126019115"}
-#+end_export
+#+end_src
+
+#+RESULTS:
+: '(:loan-application-id #uuid "548a46b0-fa61-58e8-9dbf-52f60e3c0280"  :opportunity-id "Y8vcTAKn2Hx5K3"  :requested-amount "1"  :tax-id "6126019115")
