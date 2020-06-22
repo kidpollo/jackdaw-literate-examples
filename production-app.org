@@ -1767,7 +1767,7 @@ docker run --tty \
 }
 #+end_export
 
-#+BEGIN_SRC bash :dir prod-app :results output :wrap export json :exports both
+#+BEGIN_SRC bash :dir prod-app :results output :exports both :wrap export json
 docker run --tty \
   --network host \
   edenhill/kafkacat:1.5.0 \
