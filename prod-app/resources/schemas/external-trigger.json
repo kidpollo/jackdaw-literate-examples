@@ -1,0 +1,25 @@
+{
+  "type": "record",
+  "name": "external_trigger",
+  "fields": [
+    {
+      "name": "opportunity_id",
+      "type": [
+        "null",
+        "string"
+      ],
+      "default": null
+    },
+    {
+      "name": "trigger_id",
+      "type": [
+        "null",
+         {
+          "type": "string",
+          "logicalType": "uuid"
+        }
+      ],
+      "default": null
+    }
+  ]
+}

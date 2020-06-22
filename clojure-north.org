@@ -1,0 +1,388 @@
+* Themes
+
+ * Literate programming
+   * Background
+   * Org-Mode and Babel
+   * Quick simple clojure project example/template.
+   * References
+ * Building streams apps
+   * Assumptions
+   * References
+     * Kafka, Kafka Streams, Jackdaw
+   * Unit testing should be all you need
+     * Using transducers
+   * Unfortunately thats almost never the case
+     * Test machine to the rescue
+        * Integration testing (app behavior)
+        * System testing (multi app behavior) 
+ * SBA connector
+   * Show simplified example of the app using Literate Programming
+   * Caveats
+ * Logging, observability and monitoring
+   * Structured logging
+   * Realtime monitoring and instrumentation
+   * Exception handling
+     
+* Objectives
+
+ * Identify when Literate Programming is a good fit
+ * Use Jackdaw to create production ready Kafka streams appps
+ * Leverage best practices early on for faster turanound of Kafka Streams apps 
+ * Showcase how we implemented a production Streaming app in weeks with Jackdaw
+
+* Script
+** Introduction
+
+  Hello! My name is Francisco but I go as Paco. I work at Funding Circle where I
+  have been for almost 3 years. 
+
+  One of the reasons I joined Funding Circle was the opportunity to learn about
+  and work with Kafka
+  
+  I'm also a relatively young 36 year old that has gone through major heart and brain
+  surgery. I share this information because I'll use it to paint a picture about
+  testing in production systems later on.
+
+  I also want to share that I am far from being an Emacs or Org-mode expert
+  so do share cool tips. Phone lines are always open.
+
+** Objectives
+
+ * Identify when Literate Programming is a good fit
+ * Use Jackdaw to create production ready Kafka streams apps
+ * Leverage best practices early on for faster turanound of Kafka Streams apps 
+
+  First, let's talk a bit about how I got around to using Literate Programming
+  as a tool to learn new things.
+      
+** (LAFT) Learning all the f*ing time.
+
+  I consider myself a lifelong learner. It's hard for me to stay engaged on a
+  project if I am not learning something new. However one of the drawbacks of
+  being this curious (or better said: `distracted by shiny new things`) is that
+  reinforcing knowledge becomes a challenge. That's why I have particular
+  interest in finding better ways of documenting things I learned for future me.
+
+  Naturally, I've gathered a vast amount of notes, Gists and code with a ton of
+  comments that make little sense a few days after I wrote them. If I get back
+  to something before knowledge gets fully reinforced, I end up having to spend
+  a lot of extra time to load up again with the necessary context.
+  
+  Learning on the job is great and something most employers should be OK with,
+  specially for newer employees or apprenticeship driven roles, but it can also
+  be hard. For example, I came in to my first Clojure job not knowing much about
+  Clojure or functional programming and I made the wrong choice to also try to
+  learn Emacs at the same time. I saw my coworkers do amazing cool Clojure stuff
+  in Emacs and of course I was eager to learn both. 
+
+  I made the incorrect assumption that the power of Clojure came along with the
+  power of Emacs. But no amount of notes and practice would make me productive
+  in a reasonable amount of time. My lead at the time suggested I drop Emacs and
+  actually focus on the language and less on the tooling. In hindsight this was
+  obvious but my nature is to be overly optimistic and curious, so be aware of
+  your limitations and optimize your learning time.
+
+** Seeing the light
+
+  One of the cool things I learned while pairing with my "[[https://www.reddit.com/r/emacs/comments/cslkqc/is_there_an_agreed_upon_term_for_emacs_user/][enlightened]]"
+  co-workers is that org-mode in Emacs is insanely powerful and flexible. There
+  are people that use it as a [[https://sachachua.com/blog/2007/12/how-to-use-emacs-org-as-a-basic-day-planner/][planning tool]] or [[https://blog.jethro.dev/posts/how_to_take_smart_notes_org/][notes taking tool]]. I am not
+  particularly organized or interested enough to use org-mode as a planning tool
+  but I was definitely interested on using it as a notes and documentation tool.
+
+** Documentation
+
+  On the subject of documentation. I've always been fond of repositories that
+  have a hefty amount of docs, specially if all the documentation is reachable
+  via the README file. I am specially a fan of Getting started sections. My code
+  folder often became a graveyard of failed starts. I used to copy the getting
+  started code and paste it on my editor and run it, then I would pat my back
+  and walk away believing a I had learned something new. As you can surmise this
+  is almost never what the authors intend. I think in those cases the authors
+  just want to "flex" their awesome API design abilities. The Clojure community
+  seems to have a variety or views on how to approach documentation. There are
+  projects that have [[http://day8.github.io/re-frame/][incredible documentation]] and some that just need a few
+  [[https://github.com/clj-commons/ordered][snippets]].
+
+** Babel
+
+  Back to org-mode ... One day I wanted to make Emacs use syntax highlighting
+  for a code snippet I added to an org-mode document. As any self respecting
+  developer I went to google and stack overflow for answers where I learned
+  about [[https://orgmode.org/worg/org-contrib/babel/][Babel]]. Babel is an org-mode extension to work with /active/ code on
+  documents. Keyword /active/; not only will your code snippets look pretty
+  but you can actually execute them and print the output into the document
+  directly. This reminded me about the deep learning / data science community
+  using [[https://jupyter.org/][Jupiter Notebooks]] or [[http://gorilla-repl.org/][Gorilla REPL]]. I also thought that this "active
+  code" concept jives particularly well with Clojure. 
+
+** Literate Programming
+
+  Shortly after I found about [[https://en.wikipedia.org/wiki/Literate_programming][Literate programming]]. Wikipedia definition
+  says:
+
+#+BEGIN_QUOTE
+Literate programming is a programming paradigm introduced by Donald Knuth in
+which a computer program is given an explanation of its logic in a natural
+language, such as English, interspersed with snippets of macros and traditional
+source code, from which compilable source code can be generated.
+#+END_QUOTE
+
+  The more I learned and dug around I noticed org-mode, babel and Literate
+  programming seem to be underrated, under-hyped and underutilized. That got me
+  thinking, that someone could not only write notes and documentation using
+  org-mode but actually write complete apps in an easier to follow way. Instead
+  of talking more about it lets go over a simple example of how I would setup
+  and run a Clojure project using Literate programming in org-mode.
+
+** Demo time
+
+  + [[file:simple-app.org][Simple app]]
+
+  Awesome, now that we have that out of the way lets talk about building
+  production ready Kafka streams apps with Jackdaw. I am not going to spend a
+  lot of time trying to sell the virtues of Kafka streams and Jackdaw but here
+  is a quick overview.
+
+** References.
+
++ https://orgmode.org/
++ https://en.wikipedia.org/wiki/Literate_programming
++ https://orgmode.org/worg/org-contrib/babel/languages/ob-doc-clojure.html
+
+** What is Kafka anyway?
+
+  Most of Funding Circle's software is (or in process of being) backed by
+  Kafka. One of the great outcomes is that there is not mutable (locking) state.
+  In other words our main state store is Kafka. This lets us shape data in a
+  variety of ways better suited each business domain. In our case,
+  things like processing loan applications, servicing a loan, disbursing money,
+  handling the books, reconciling transactions, etc. There is no single data
+  model like in traditional relational databases. Instead we only have
+  services that /produce/ events onto topics and services that /consume/ from
+  those topics, each with their own offsets.
+
+  That decoupling is essential to us, because data being transacted upstream
+  does not lock any downstream process. For example, one of the monolithic
+  systems we replaced with this architecture was in charge of originating and
+  partitioning loans. The amount of time and IO spent on this was unsustainable
+  as batch processing and reconciling daily operations was getting close to
+  taking more than a day. As you can imagine this is far from ideal as we are
+  trying to beat slow, inefficient banks. Furthermore, using a relational data
+  model constrained us from being able to iterate on different approaches of
+  servicing loans or increasing the number of loan parts we could process.
+
+** But where is the state?
+   
+  Having a ton of topics and a way to consume and produce to them is great but
+  we still need to do useful stuff. There are a ton of tools in the Kafka
+  [[https://cwiki.apache.org/confluence/display/KAFKA/Ecosystem][ecosystem]]. Kafka Streams is a tool under the umbrella of the main Kafka
+  project and has a particular feature that makes it specially compatible with
+  the Clojure ecosystem. Kafka Streams is just packaged as a library just as
+  Clojure is, so building Clojure apps with it becomes seamless.
+
+  Jackdaw is a thin wrapper around Kafka and Kafka Streams client libraries that
+  helps us build streams apps. Jackdaw also contains functions to serialize and
+  deserialize records as JSON, EDN, and Avro, as well as functions for writing
+  unit and integration tests.
+ 
+** Production ready Kafka
+   
+  Onto production ready Jackdaw. During my time at Funding Circle I've worked on
+  a few different teams. Teams at Funding Circle operate on common
+  infrastructure and share as much as its feasible but when it comes to best
+  practices around productionizing an app I noticed it felt like wild west. 
+
+  I've taken it upon myself to gather the best practices I've seen applied at FC
+  and share them here.
+
+  I know that none of the following practices / patterns are novel but
+  from the sea of best practices and software patterns out there this have been
+  the ones that have made the most beneficial impact on our Kafka Streams apps.
+
+*** The Test Pyramid
+
+  The [[ https://martinfowler.com/bliki/TestPyramid.html][testing pyramid]] is a common and popular way of thinking about how and what
+  to test. This can be interpreted in a variety of ways depending on what you
+  define as a target system. I've had endless debates on what are considered the
+  boundaries of an integration or a unit test in Clojure applications. Also in a
+  multi (micro) services architecture finding the scope of what should be tested
+  vs what should be mocked becomes really hard.
+
+  In the case of testing Kafka Streams apps it also gets complicated because the
+  Kafka streams API is really a DSL to represent applications as Topologies. The
+  actual low level calls that allow you to see your application as just a series
+  of transformations on nodes are abstractions, so if you are testing the
+  behavior of a topology you are technically doing an integration test.
+
+**** Unit Tests
+
+  I could go on forever but for practical purposes we generally consider any
+  test we run without the needing to run Kafka is a unit test. It is very easy
+  to abstract business logic into functions thanks to Jackdaw. We can also
+  assume that the Kafka streams DSL transformations are always correct. The
+  problem is comes when you want to validate behavior of a topology as data
+  flows through it.
+
+  In an ideal world all your tests should be free of external dependencies
+  Unfortunately that's not the case for Kafka steams apps because there is a lot
+  more to validating a topology. Mainly you also want to validate that data
+  coming in an out of topology nodes is in the right shape and using the correct
+  schema. At Funding Circle we use AVRO to define the schema of most of our
+  topics. It is super common to run into bugs where data in the topology looks
+  good but the does not match a schema or the other way around.
+
+  Fortunately we now learned ways to deal with this issues still using unit
+  tests.
+
+**** Specs, duh.
+
+  For dealing with the schema vs data in our Topologies we rely on Clojure specs.
+  Having specs to describe the data is great but we also use it to generate the
+  AVRO schemas we are going publish. 
+
+  We created a spec-to-avro compiler which we use to publish and update the AVRO
+  schemas our topics support. Our tests can rely on spec generators to produce
+  any dummy data we want to test with and we can gain ultimate confidence in our
+  tests by also doing generative testing. 
+
+  Recently we even started to create different sets of specs for reading and
+  writing operations as the schema constraints of writing to a topic and reading
+  from a topic drift over time as a schema evolves. This is particularly more
+  painful because of our use of [[https://docs.confluent.io/current/schema-registry/avro.html][AVRO]]. 
+
+  The pain comes when we need to evolve schemas. AVRO is very strict about
+  backwards compatibility so we always need to keep that in mind.
+
+**** Integration tests
+
+  For validating the behavior of a topology (integration testing) we now rely on
+  [[https://github.com/FundingCircle/jackdaw/blob/master/doc/test-machine.md][Test Machine]]. This is a newer addition to the Jackdaw library that uses the
+  ~TopologyTestDriver~ that appeared in Kafka version 2.4.0. It allows us to
+  create a fixture that lets us to call a topology without the need to run a
+  Kafka. This is actually a very interesting subject but it is a bit out of
+  scope of this presentation. I'll add a link to the references where you can
+  learn more on this subject. The ~TopologyTestDriver~ allows us to cover most
+  of our integration testing needs without needing to run Kafka but sometimes we
+  want to test the behavior of more than one topology at the time. The test
+  driver only supports running one topology. For this scenarios like this, Test
+  Machine actually supports multiple drivers. This lets us to setup tests that
+  can run against a Kafka or Kafka rest proxy. This is a super powerful feature
+  in Jackdaw I'll showcase in a bit.
+
+**** The top of the pyramid.
+
+  So, we get to the top of the testing pyramid and here is where we have our
+  expensive tests. The ones that test the whole system. The ones that when they
+  fail, they leave you wondering 'what happened?' I always connect these types
+  of test to my personal health story.
+
+  On my first year of college I fell into medical hardship due to very
+  expensive and inconclusive tests. I was misdiagnosed with epilepsy after a few
+  consecutive fainting spells. I was young and inexperienced and let fear put me on
+  a treatment I could not afford and did not need.
+
+  Years later and a with a lot of research on my own I decided there was no
+  reason to continue this treatment. I had no answers for the fainting spells
+  yet, but I sure did not have epilepsy. This was emotionally taxing which
+  eventually led me to start taking SSRIs. A psychiatrist diagnosed my anxiety
+  with simple observations, simple tests if you will.
+
+**** Solving the mystery 
+ 
+  Years later the fainting spells came back and I still had no diagnosis. I had
+  moved to San Francisco and doctors this side of the border had no clue
+  either. One night the right circumstances for a diagnosis came after I passed
+  out following a somewhat strong earthquake. My girlfriend (now wife) saw me
+  pass out and insisted we go to the hospital in spite me telling her this was a
+  thing that happened to me sometimes. Lucky for me I passed out at the hospital
+  while I was connected to beeping machines they saw my heart flat line. Much
+  like bugs in production this problem was not reproducible under normal
+  circumstances. Turns out I had a rare condition linked to dehydration and
+  other environmental factors that causes my vasovagal response to be quite
+  severe. Each one of those times I was passing out I was not fainting, I was
+  actually rebooting. I left the hospital a few weeks later with a pacemaker.
+  Fainting mystery solved.
+
+**** Something was missed ...
+
+  And what about that brain surgery you might ask? Well, remember those
+  expensive tests? Much like with code, expensive tests can yield misleading
+  results. Only back then the Doctors where not looking at the right thing. They
+  missed that I had a super rare and deadly benign tumor that was starting to
+  form in my brain. They just focused on ruling out bigger non deadly benign
+  tumor that I also had in another region of my brain. Ten years after that
+  first expensive test I decided to follow up on that benign tumor that was
+  deemed unrelated to my fainting spells. I wanted to see if it had anything to
+  do some minor headaches I was having at the time. Turns out the other deadly
+  tumor was close to becoming a real big problem. Shortly after, I had brain
+  surgery to remove it. I was spared from a really terrible outcome by chance
+  and by a radiologist that wasn't distracted by my fainting spells.
+
+  Moral of the story is that the top of the testing pyramid is not bad but its
+  value is only worth if you know what you are looking for. They are also can
+  become heavy to carry around and hard to live with.
+
+*** Structured logging as a first class citizen (observability)
+
+  Wouldn't it be nice if our body spit out logs about everything that happened
+  inside them? It would be terrible, I know. Logging can be annoying, verbose
+  and useless. In recent years the practice of [[https://stackify.com/what-is-structured-logging-and-why-developers-need-it][Structured Logging]] has become
+  more popular. This practice also jives well with the "It's just data" Clojure
+  mantra. The idea is fairly straightforward, we log data instead of
+  unstructured text. This has many benefits like making it easier to find
+  needles in the stacks upon stacks of logs produced by multiple services but
+  also makes problems easier to diagnose and trace. This practice is not without
+  its flaws but can be greately mitigated by applying it [[https://www.graylog.org/post/3-steps-to-structuring-logs-effectively][effectively]]. Some best
+  practices I want to share are:
+
+  - Create a common logging api shared accross all your namespaces.
+    - Can be shared across projects.
+    - Ensure common fieldnames.
+  - Dont get too crazy logging data.
+    - Mitigate processing delays and bottlenecks on infrastructure.
+    - Graylog does not support data nested more than 1 level.
+  - Create runboks and alerts that include logging queries.
+    - React quicly to production issues.
+    - Creates a shared understanding of the system during runtime.
+    
+*** Monitoring and metrics
+
+  Structured logging alone is not enough for diagnosis of production systems.
+  Realtime information is as important and valuable. Much like that heart monitor
+  that showed me flatline lead to my diagnosis, no volume of data will have as
+  much impact as realtime feedback. Metrics can also be [[https://martinfowler.com/articles/useOfMetrics.html][misutilized]] so here are
+  some of the main practices for metrics:
+
+  - Gather detailed JVM memory metrics.
+    - JVM GC ... 'nuff said
+    - Helps debug JVM options changes.
+  - Instrument your logging events to produce metrics.
+    - Cross reference event counts in real time.
+    - 2 corroborating data points are better than one.
+    - Gain confidence on your system.
+    - Create custom alerts in the event of suspected buggy behavior.
+  - Publish Kafka Streams common metrics.
+    - Common dashboards across apps.
+    - Being able to see the consumer offsets in real time is priceless.
+
+** Demo time
+   
+  We recently had the opportunity of putting all these practices from the past
+  together in an urgent project related to the COVID pandemic. We were tasked
+  with building a connector service to submit PPP loan applications to the Small
+  Business Administration (SBA). Time to do more Literate Programming with a
+  simplified version of the connector to showcase the production practices
+  previously mentioned.
+
+  + [[file:production-app.org][Production App]]
+
+** Kafka Streams and Jackdaw References
+
+   + [[https://www.youtube.com/watch?v=eJFBbwCB6v4][Kafka and the REPL: Stream Processing, the Functional Way]] 
+   + [[https://www.confluent.io/kafka-summit-san-francisco-2019/data-oriented-programming-with-clojure-and-jackdaw/][Data Oriented Programming with Clojure]]
+   + [[https://www.youtube.com/watch?v=qNn2ykAaKis][Event Sourced Systems with Kafka, Clojure, and Jackdaw]]
+   + [[https://www.confluent.io/blog/testing-event-driven-systems/][Testing Event Driven Systems]]
+   + [[https://www.confluent.io/blog/test-kafka-streams-with-topologytestdriver/][Testing Kafka Streams Using TestInputTopic and TestOutputTopic]]
+
+** Thanks and acknowledgments

@@ -1,0 +1,238 @@
+* Simple App
+  
+This is an example of a simple Clojure app written using Literate programming
+paradigm using org-mode.
+
+** Setting up the project
+   
+First we setup the project. In the source block bellow you can see that the
+language is set to ~zsh~. This tells babel that this snippet should be executed
+within a shell. I also set the ~:results~ header argument to silent because in
+this case we don't care about the output of running this snippet. 
+
+#+BEGIN_SRC zsh :results silent
+mkdir -p simple-app/src/simple_app
+mkdir -p simple-app/test/simple_app
+mkdir -p simple-app/dev
+#+END_SRC
+
+Now we create our basic deps file. Note that our source block name is set to
+clojure. We do this because that will make the file sintax hilighting work.
+
+To save a snippet like this on a path we set the ~:tangle~ header argument and
+when we run the emacs command ~org-babel-tangle~ our file will be saved to the
+path specified.
+
+#+begin_src clojure :tangle simple-app/deps.edn :results silent :eval no
+{:deps
+ {org.clojure/clojure {:mvn/version "1.10.1"}}
+ :aliases
+ {:test
+  {:extra-paths ["test"]
+   :extra-deps {com.cognitect/test-runner
+                {:git/url "https://github.com/cognitect-labs/test-runner.git"
+                 :sha "209b64504cb3bd3b99ecfec7937b358a879f55c1"}}
+   :main-opts ["-m" "cognitect.test-runner"]}}}
+#+end_src
+
+** Running and evaluating code
+
+Now that we have our basic project setup we can work on our project namespaces.
+
+First we start by starting a REPL. There are a few different ways you can
+approach this. If you are in emacs you could simply run ~cider-jack-in~ but
+if you notice this file isn't in the same directory as the project. That means
+cider wont know what ~deps.edn~ file to load.  
+
+A solution for this is to manually run your REPL command. Notice the ~:dir~
+header variable bellow. It tells Emacs the relative path of where to execute the
+command. A quirk of doing this is that the following command is blocking and Emacs
+seems to freeze on waiting for output. You can ~C-g~ to unfreeze the editor.
+Notice we set ~:session~ so that our future zsh commands dont get blocked.
+
+#+BEGIN_SRC zsh :dir simple-app :results silent :session simple-app :eval query
+clojure -R:test -C:test -Sdeps '{:deps {nrepl {:mvn/version "0.7.0"} cider/cider-nrepl {:mvn/version "0.25.2"}}}' -m nrepl.cmdline --middleware '["cider.nrepl/cider-middleware"]'
+#+END_SRC
+
+Lets fetch that nrepl port.
+
+#+BEGIN_SRC zsh :dir simple-app :eval query
+cat .nrepl-port
+#+END_SRC
+
+#+RESULTS:
+: 44067
+
+Now we run ~cider-connect-clj~ and we can start working on our project.
+
+Lets start with a simple test.
+
+#+begin_src clojure :ns simple-app.core-test :tangle simple-app/test/simple_app/core_test.clj :results silent
+(require '[clojure.test :refer [deftest testing is]])
+
+(deftest a-test
+  (testing "FIXME, I fail."
+    (is (= 0 1))))
+#+end_src
+
+Since we are not in a typical dev environment there are a few different ways to
+run clojure code. Notice that we need to set ~:epilogue~
+
+We could run them as if we were in the command line, but make sure you
+~org-babel-tangle~ first. Notice that we set ~:epilogue~ to "true". This is a
+weird quirk we have to do because the output returns to standard error so Emacs
+thinks there is no output. We also set results as a pp so we can comfortably
+collapse the results.
+
+#+BEGIN_SRC zsh :dir simple-app :results pp :epilogue "true" :exports both
+clj -A:test
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+
+Running tests in #{"test"}
+
+Testing simple-app.core-test
+
+FAIL in (a-test) (core_test.clj:6)
+FIXME, I fail.
+expected: (= 0 1)
+  actual: (not (= 0 1))
+
+Ran 1 tests containing 1 assertions.
+1 failures, 0 errors.
+#+end_example
+
+Ideally, we should really try to evaluate code already directly on our REPL.
+
+#+begin_src clojure :ns clojure.test :tangle simple-app/dev/scratch.clj :results output :exports both
+(run-tests 'simple-app.core-test)
+#+end_src
+
+#+RESULTS:
+#+begin_example
+
+Testing simple-app.core-test
+
+FAIL in (a-test) (NO_SOURCE_FILE:6)
+FIXME, I fail.
+expected: (= 0 1)
+  actual: (not (= 0 1))
+
+Ran 1 tests containing 1 assertions.
+1 failures, 0 errors.
+#+end_example
+
+Notice that we set ~:results~ to output. This tells Emacs to get the value from
+standard out which is way more informative than the return value of the
+~run-tests~ function. In this case the function returns a map of values like:
+
+~{:test 1, :pass 0, :fail 1, :error 0, :type :summary}~
+
+I started with tests to score some karma points but this technique really shines
+is in the ability to interactively evaluate code and see the results inline. So
+lets do more of that now.
+
+#+begin_src clojure :ns simple-app.core :tangle simple-app/src/simple_app/core.clj :results silent
+(defn hello [subject]
+  (prn (str "Hello " subject)))
+#+end_src
+
+#+begin_src clojure :ns simple-app.core :tangle simple-app/dev/scratch.clj :results output :exports both
+(hello "World")
+#+end_src
+
+#+RESULTS:
+: "Hello World"
+
+First of notice we are still setting results to "output". This is because this
+function prints to standard out. Thats not something new, but checkout the
+~:tangle~ header. The value is set to a "scratch.clj" file in the dev directory.
+That file will now become a bucket where all the one off commands I run will go
+to. I thought this was a neat concept as I can go back to that file and just see
+code int the order I meant to execute it without all the documentation.
+
+Now lets play a bit more with that ~:results~ header. We are going to se a few
+examples here for mori information you can go to the official [[https://orgmode.org/manual/Results-of-Evaluation.html][docs]].
+
+The default value for results is "value". Wich plainly means the result of the
+evaluation will be printed in the documet. There is an anoying quirk (or bug?)
+that with clojure evaluation where the result is printed only from the first
+form. I dont mind this so much as the idea of this approach is to have
+documentation and evaluation step by step.
+
+#+begin_src clojure :tangle simple-app/dev/scratch.clj :results value :exports both
+(str "foo")(+ 1)(prn "baz")
+#+end_src
+
+#+RESULTS:
+: foo
+
+If the evaluation returns something that looks like a list we can use 
+~:results value list~
+
+#+begin_src clojure :tangle simple-app/dev/scratch.clj :results value list :exports both
+["foo" "bar" "baz"]
+#+end_src
+
+#+RESULTS:
+- foo
+- bar
+- baz
+
+Org will try to print things like sequences of sequences as tables by default
+but it can be forced by setting  ~:results value list~
+
+#+begin_src clojure :tangle simple-app/dev/scratch.clj :exports both
+[["foo" "bar" "baz" "qux"]
+ ["1" "2" "3" "4"]
+ [1 2 3 4]
+ '(:one :two :three :four)
+ (take 4 (range))]
+#+end_src
+
+#+RESULTS:
+|  foo |  bar |    baz |   qux |
+|    1 |    2 |      3 |     4 |
+|    1 |    2 |      3 |     4 |
+| :one | :two | :three | :four |
+|    0 |    1 |      2 |     3 |
+
+I could not find a super clean way to print maps nicely. Fortunately clojure
+pprint has us covered.
+
+#+begin_src clojure :tangle simple-app/dev/scratch.clj :results output :exports both
+(clojure.pprint/print-table [{:a 1 :b 2 :c 3} {:b 5 :a 7 :c "dog"}])
+#+end_src
+
+#+RESULTS:
+: 
+: | :a | :b |  :c |
+: |----+----+-----|
+: |  1 |  2 |   3 |
+: |  7 |  5 | dog |
+
+There is so much more you can do with the ~:results~ header like printing
+images, raw data, org code blocks, drawers, etc. Be shure to look at the docs
+and play around on your own.
+
+One last tip I want to share is that you might want to edit clojure blocks in
+clojure mode. To achieve this there is a nifty ~org-edit-special~ command. This
+command will put your snippet in an Emacs pop-up in clojure mode.
+
+#+begin_src clojure :tangle simple-app/src/simple_app/core.clj :results silent
+(defn -main [target]
+  (hello target))
+#+end_src
+
+Run ~org-babel-tangle~ and ~org-babel-execute-buffer~ and profit.
+
+#+BEGIN_SRC zsh :dir simple-app
+clojure -m simple-app.core "Clojure North"
+#+END_SRC
+
+#+RESULTS:
+: Hello Clojure North
+
+There you have it a fully running Clojure project in one file.
