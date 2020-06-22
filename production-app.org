@@ -271,7 +271,7 @@ digraph Topology {
 #+end_src
 
 #+RESULTS:
-: #:clojure.spec.alpha{:problems ({:path [:tax-id], :pred :clojure.spec.alpha/unknown, :val "foo", :via [:prod-app.specs.reader-specs/loan-application :loan-application/tax-id], :in [:tax-id]}), :spec :prod-app.specs.reader-specs/loan-application, :value {:loan-application-id #uuid "ed28693c-7d4f-44a2-ae43-05dbb1c47914", :opportunity-id "external-id-for-a-loan", :requested-amount "100", :tax-id "foo"}}
+: #:clojure.spec.alpha{:problems ({:path [:tax-id], :pred :clojure.spec.alpha/unknown, :val "foo", :via [:prod-app.specs.reader-specs/loan-application :loan-application/tax-id], :in [:tax-id]}), :spec :prod-app.specs.reader-specs/loan-application, :value {:loan-application-id #uuid "0bfa9e6b-8c56-451a-aa8a-ea010de2017b", :opportunity-id "external-id-for-a-loan", :requested-amount "100", :tax-id "foo"}}
 
   A valid loan application entry in our state store.
 
@@ -957,49 +957,6 @@ implementation we will use for this project.
 : Ran 1 tests containing 9 assertions.
 : 0 failures, 0 errors.
 
-
-  We get nice, readable logs with our log configuration for tests. Notice the
-  ~:wrap~ header argument on the following snippet.
-
-#+BEGIN_SRC bash :dir prod-app :results output :wrap EXPORT json :exports both
-tail -n 31 log/sba-connector-test.log 
-#+END_SRC
-
-#+RESULTS:
-#+begin_EXPORT json
-{
-  "timestamp" : "2020-06-22T00:56:23.747Z",
-  "level" : "INFO",
-  "thread" : "nREPL-session-38f9c839-1581-463f-b83a-d63e61fec0ec",
-  "loan-application-id" : "8857b052-3bbc-5f35-9c41-bb5c88820241",
-  "ns" : "prod-app.log",
-  "line" : 53,
-  "opportunity-id" : "AV",
-  "column" : 17,
-  "requested-amount" : "6VuGN2NUL5rQ9i5trF",
-  "event" : "loan-application-attribute-validation-success",
-  "logger" : "prod-app.log",
-  "message" : "Loan application attributes satisfy writer spec",
-  "context" : "default"
-}
-{
-  "timestamp" : "2020-06-22T00:56:23.748Z",
-  "level" : "INFO",
-  "thread" : "nREPL-session-38f9c839-1581-463f-b83a-d63e61fec0ec",
-  "loan-application-id" : "8857b052-3bbc-5f35-9c41-bb5c88820241",
-  "ns" : "prod-app.log",
-  "line" : 53,
-  "opportunity-id" : "AV",
-  "column" : 17,
-  "requested-amount" : "6VuGN2NUL5rQ9i5trF",
-  "problems-count" : 1,
-  "event" : "loan-application-incomplete",
-  "logger" : "prod-app.log",
-  "message" : "Loan application does not satisfy reader spec",
-  "context" : "default"
-}
-#+end_EXPORT
-
 ** The rest of the structure
 
   Before we move to doing integration testing we have to build the rest of the
@@ -1438,14 +1395,11 @@ tail -n 31 log/sba-connector-test.log
   added this scaffolding namespaces directly to the generated project to avoid
   noise in this document but be sure to go check them out later.
 
-#+begin_src clojure :tangle prod-app/dev/scratch.clj
+#+begin_src clojure :tangle prod-app/dev/scratch.clj :results silent
 (require '[prod-app.integration.fixtures]
          '[prod-app.integration.journal]
          '[prod-app.integration.runner])
 #+end_src
-
-#+RESULTS:
-: nil
 
   Test Machine simulates Kafka via commands. The simplest way that I can explain
   it is as a machine that takes input commands and a topoloy configuration and
@@ -1556,7 +1510,7 @@ Testing prod-app.integration.topology-test
 |-------------------------------+-----------|
 | :sba-loan-application-updated |         1 |
 |         :sba-result-available |         1 |
-writing results to './test-results/journal-1592787386910'
+writing results to './test-results/journal-1592788219266'
 
 Ran 1 tests containing 5 assertions.
 0 failures, 0 errors.
@@ -1706,7 +1660,7 @@ echo "Done"
 
   After the run we can see the topics that were created by our topology
 
-#+BEGIN_SRC bash :dir prod-app
+#+BEGIN_SRC bash :dir prod-app :exports both
 docker-compose exec -T broker kafka-topics --list --bootstrap-server localhost:9092
 #+END_SRC
 
@@ -1724,7 +1678,7 @@ docker-compose exec -T broker kafka-topics --list --bootstrap-server localhost:9
   The internal schemas where defined by the topology when it was writing to
   them. The external ones we had to create manually in the script above.
 
-#+BEGIN_SRC bash :dir prod-app
+#+BEGIN_SRC bash :dir prod-app :exports both
 curl http://localhost:8081/subjects | jq .
 #+END_SRC
 
@@ -1740,22 +1694,22 @@ curl http://localhost:8081/subjects | jq .
 
   We can peek at our logs and we see that a sba result was published.
 
-#+BEGIN_SRC bash :dir prod-app :results output :wrap EXPORT json :exports both
+#+BEGIN_SRC bash :dir prod-app :results output :wrap export json :exports both
 tail -n 19 log/sba-connector-test.log
 #+END_SRC
 
 #+RESULTS:
-#+begin_EXPORT json
+#+begin_export json
 {
-  "timestamp" : "2020-06-22T00:56:54.297Z",
+  "timestamp" : "2020-06-22T01:10:45.003Z",
   "level" : "INFO",
-  "thread" : "prod-app-StreamThread-1",
+  "thread" : "prod-app-StreamThread-3",
   "loan-application-id" : "548a46b0-fa61-58e8-9dbf-52f60e3c0280",
   "published-by" : "sba-connector",
   "ns" : "prod-app.log",
   "line" : 53,
   "opportunity-id" : "Y8vcTAKn2Hx5K3",
-  "published-timestamp" : 1592787413372,
+  "published-timestamp" : 1592788244409,
   "column" : 17,
   "requested-amount" : "1",
   "id" : "d5d779e2-8edf-584b-8243-1a587221b902",
@@ -1765,13 +1719,13 @@ tail -n 19 log/sba-connector-test.log
   "message" : "SBA result available",
   "context" : "default"
 }
-#+end_EXPORT
+#+end_export
 
   We can also validate the content of our topics. Use ~kafkacat~ for consuming
   from kafka topic. Its way better than the ~kafka-console-consumor~ and it
   recently added support for AVRO
 
- #+BEGIN_SRC bash :dir prod-app :results output :wrap EXPORT json :exports both
+ #+BEGIN_SRC bash :dir prod-app :results output :wrap export json :exports both
 docker run --tty \
   --network host \
   edenhill/kafkacat:1.5.0 \
@@ -1781,7 +1735,7 @@ docker run --tty \
 #+END_SRC
 
 #+RESULTS:
-#+begin_EXPORT json
+#+begin_export json
 {
   "loan_application_id": {
     "string": "548a46b0-fa61-58e8-9dbf-52f60e3c0280"
@@ -1799,7 +1753,7 @@ docker run --tty \
     "string": "548a46b0-fa61-58e8-9dbf-52f60e3c0280"
   },
   "published_timestamp": {
-    "long": 1592787413151
+    "long": 1592788244187
   },
   "published_by": {
     "string": "sba-connector"
@@ -1811,9 +1765,9 @@ docker run --tty \
     "array": []
   }
 }
-#+end_EXPORT
+#+end_export
 
-#+BEGIN_SRC bash :dir prod-app :results output :wrap EXPORT json :exports both
+#+BEGIN_SRC bash :dir prod-app :results output :wrap export json :exports both
 docker run --tty \
   --network host \
   edenhill/kafkacat:1.5.0 \
@@ -1823,7 +1777,7 @@ docker run --tty \
 #+END_SRC
 
 #+RESULTS:
-#+begin_EXPORT json
+#+begin_export json
 {
   "id": {
     "string": "d5d779e2-8edf-584b-8243-1a587221b902"
@@ -1847,7 +1801,7 @@ docker run --tty \
     "string": "6126019115"
   },
   "published_timestamp": {
-    "long": 1592787413372
+    "long": 1592788244409
   },
   "published_by": {
     "string": "sba-connector"
@@ -1856,12 +1810,12 @@ docker run --tty \
     "string": "Y8vcTAKn2Hx5K3"
   }
 }
-#+end_EXPORT
+#+end_export
 
   We can even inspect our state store backing topic created by Kafka Streams.
   Notice that the data in the backing state store is plain EDN :D
 
-#+BEGIN_SRC bash :dir prod-app :results output :wrap EXPORT clojure :exports both
+#+BEGIN_SRC bash :dir prod-app :results output :wrap export clojure :exports both
 docker run --tty \
   --network host \
   edenhill/kafkacat:1.5.0 \
@@ -1870,6 +1824,6 @@ docker run --tty \
 #+END_SRC
 
 #+RESULTS:
-#+begin_EXPORT clojure
+#+begin_export clojure
 {:loan-application-id #uuid "548a46b0-fa61-58e8-9dbf-52f60e3c0280", :opportunity-id "Y8vcTAKn2Hx5K3", :requested-amount "1", :tax-id "6126019115"}
-#+end_EXPORT
+#+end_export
